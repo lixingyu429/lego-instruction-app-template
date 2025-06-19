@@ -1,5 +1,6 @@
 import streamlit as st
-from openai import OpenAI
+import time
+from openai import OpenAI, RateLimitError, APIError, Timeout
 
 # Title
 st.title("LEGO Instruction Assistant")
@@ -12,7 +13,7 @@ if "logged_in" not in st.session_state:
 if not st.session_state.logged_in:
     user_id = st.text_input("Enter your User ID")
     password = st.text_input("Enter your Password", type="password")
-    
+
     if st.button("Login"):
         if password == "lego123":  # Replace with your own logic if needed
             st.session_state.logged_in = True
@@ -40,17 +41,33 @@ else:
         # Append user message
         st.session_state.messages.append({"role": "user", "content": user_input})
 
-        # Make API call
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant for LEGO instructions. Answer clearly and guide students step by step."}
-            ] + st.session_state.messages
-        )
+        # Retry mechanism
+        max_retries = 5
+        retry_delay = 2
+        for attempt in range(max_retries):
+            try:
+                response = client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[
+                        {"role": "system", "content": "You are a helpful assistant for LEGO instructions. Answer clearly and guide students step by step."}
+                    ] + st.session_state.messages
+                )
+                reply = response.choices[0].message.content
+                st.session_state.messages.append({"role": "assistant", "content": reply})
+                break  # success, exit retry loop
 
-        reply = response.choices[0].message.content
-        # Append assistant reply
-        st.session_state.messages.append({"role": "assistant", "content": reply})
+            except RateLimitError:
+                st.warning(f"Rate limit reached. Retrying in {retry_delay} seconds...")
+                time.sleep(retry_delay)
+                retry_delay *= 2  # exponential backoff
+
+            except (APIError, Timeout) as e:
+                st.error(f"API error occurred: {str(e)}")
+                break
+
+            except Exception as e:
+                st.error(f"An unexpected error occurred: {str(e)}")
+                break
 
     # Display conversation
     for msg in st.session_state.messages:
