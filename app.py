@@ -6,14 +6,7 @@ from openai import OpenAI, RateLimitError, APIError, Timeout
 st.title("LEGO Instruction Assistant")
 
 # Add image below the title
-st.markdown(
-    """
-    <div style='text-align: center;'>
-        <img src='truck-review.gif' style='width: 100%; height: auto;' />
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+st.image("truck-review.gif", use_column_width=True)
 
 # Session state setup
 if "logged_in" not in st.session_state:
