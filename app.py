@@ -1,7 +1,5 @@
 import streamlit as st
 import time
-import warnings
-warnings.filterwarnings("ignore")
 from openai import OpenAI, RateLimitError, APIError, Timeout
 
 # Title
