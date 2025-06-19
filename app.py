@@ -6,7 +6,8 @@ from openai import OpenAI, RateLimitError, APIError, Timeout
 st.title("LEGO Instruction Assistant")
 
 # Add image below the title
-st.image("truck-review.gif", use_container_width=True)  # Replace with your actual image path or URL
+with st.container():
+    st.image("truck-review.gif", width=None)  # Replace with your actual image path or URL
 
 # Session state setup
 if "logged_in" not in st.session_state:
