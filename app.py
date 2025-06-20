@@ -181,7 +181,7 @@ with center:
                 st.session_state.collected_parts_confirmed = True
                 st.session_state.step = 1
                 st.rerun()
-            user_question = st.text_input("Ask a question or type 'n' if you haven't collected parts yet:")
+            user_question = st.text_input("Ask any questions:")
             if user_question and user_question.lower() != 'n':
                 answer = call_chatgpt(user_question, context)
                 st.info(f"🧠 ChatGPT says: {answer}")
