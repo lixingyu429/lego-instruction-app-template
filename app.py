@@ -22,11 +22,9 @@ if not os.path.exists(CSV_FILE):
 
 df = pd.read_csv(CSV_FILE)
 
-# Parse Subassembly and Final Assembly fields
 df['Subassembly'] = df['Subassembly'].apply(lambda x: ast.literal_eval(x) if pd.notna(x) else [])
 df['Final Assembly'] = df['Final Assembly'].apply(lambda x: ast.literal_eval(x) if pd.notna(x) else [])
 
-# Display images in a responsive and left-aligned manner
 def show_image(image_path, caption=""):
     if os.path.exists(image_path):
         img = Image.open(image_path)
@@ -34,7 +32,6 @@ def show_image(image_path, caption=""):
     else:
         st.warning(f"Image not found: {image_path}")
 
-# Display a styled GPT response aligned to the left
 def show_gpt_response(answer):
     st.markdown(f"""
     <div style='text-align: left; padding: 10px; background-color: #e8f0fe; border-left: 5px solid #4285f4; border-radius: 8px; margin-bottom: 1em;'>
@@ -42,7 +39,6 @@ def show_gpt_response(answer):
     </div>
     """, unsafe_allow_html=True)
 
-# Call GPT with image + context
 def call_chatgpt(user_question, context):
     image_path = context.get('current_image')
     image_content = None
@@ -90,11 +86,9 @@ Additional info:
     )
     return response.choices[0].message.content.strip()
 
-# --- Streamlit UI ---
-
 st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
 
-# Custom styling
+# --- Custom Styling ---
 st.markdown("""
     <style>
     .centered-container {
@@ -149,33 +143,36 @@ with center:
                 "current_image": None,
             }
 
-            # Progress Tracker
-            progress_html = f"""
-            <div class="floating-tracker">
-                <h4>🛍️ Progress Tracker</h4>
-                <p><b>Subtask:</b> {context['subtask_name']}</p>
-                <p><b>Bag:</b> {context['bag']}</p>
-                <hr>
-                <b> Collect Parts:</b> {'✅' if st.session_state.collected_parts_confirmed else '❌'}<br>
-            """
+            # Toggle Progress Tracker
+            show_tracker = st.checkbox("📊 Show Progress Tracker", value=True)
 
-            if context['subassembly']:
-                progress_html += "<b> Subassembly:</b><br>"
-                for page in context['subassembly']:
-                    completed = st.session_state.subassembly_confirmed
-                    progress_html += f"&nbsp;&nbsp;&nbsp;Page {page}: {'✅' if completed else '❌'}<br>"
+            if show_tracker:
+                progress_html = f"""
+                <div class="floating-tracker">
+                    <h4>🛍️ Progress Tracker</h4>
+                    <p><b>Subtask:</b> {context['subtask_name']}</p>
+                    <p><b>Bag:</b> {context['bag']}</p>
+                    <hr>
+                    <b> Collect Parts:</b> {'✅' if st.session_state.collected_parts_confirmed else '❌'}<br>
+                """
 
-            if context['final_assembly']:
-                progress_html += "<b> Final Assembly:</b><br>"
-                for page in context['final_assembly']:
-                    done = page in st.session_state.finalassembly_confirmed_pages
-                    progress_html += f"&nbsp;&nbsp;&nbsp;Page {page}: {'✅' if done else '❌'}<br>"
+                if context['subassembly']:
+                    progress_html += "<b> Subassembly:</b><br>"
+                    for page in context['subassembly']:
+                        completed = st.session_state.subassembly_confirmed
+                        progress_html += f"&nbsp;&nbsp;&nbsp;Page {page}: {'✅' if completed else '❌'}<br>"
 
-            if st.session_state.step == 4:
-                progress_html += "<b> Handover:</b> ✅"
+                if context['final_assembly']:
+                    progress_html += "<b> Final Assembly:</b><br>"
+                    for page in context['final_assembly']:
+                        done = page in st.session_state.finalassembly_confirmed_pages
+                        progress_html += f"&nbsp;&nbsp;&nbsp;Page {page}: {'✅' if done else '❌'}<br>"
 
-            progress_html += "</div>"
-            st.markdown(progress_html, unsafe_allow_html=True)
+                if st.session_state.step == 4:
+                    progress_html += "<b> Handover:</b> ✅"
+
+                progress_html += "</div>"
+                st.markdown(progress_html, unsafe_allow_html=True)
 
         # Step 1: Collect parts
         if st.session_state.step == 0:
