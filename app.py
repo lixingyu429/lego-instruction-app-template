@@ -166,7 +166,7 @@ with center:
                     progress_html += f"&nbsp;&nbsp;&nbsp;Page {page}: {'✅' if done else '❌'}<br>"
 
             if st.session_state.step == 4:
-                progress_html += "<b>🔄 Handover:</b> ✅"
+                progress_html += "<b> Handover:</b> ✅"
 
             progress_html += "</div>"
             st.markdown(progress_html, unsafe_allow_html=True)
