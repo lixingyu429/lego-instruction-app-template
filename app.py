@@ -1,4 +1,4 @@
-import streamlit as stMore actions
+import streamlit as st
 import pandas as pd
 import os
 import ast
@@ -55,7 +55,6 @@ def call_chatgpt(user_question, context):
                     "text": f"""
 You are helping a student on subtask: {context['subtask_name']}.
 They asked: "{user_question}"
-They asked: \"{user_question}\"
 
 Additional info:
 - Bag: {context['bag']}
@@ -116,27 +115,6 @@ if group_num:
             "current_image": None,
         }
 
-        # === Sidebar Status Tracker ===
-        with st.sidebar:
-            st.markdown("### 🛍️ Assembly Progress Tracker")
-            st.markdown(f"**Subtask:** `{context['subtask_name']}`")
-            st.markdown(f"**Bag:** `{context['bag']}`")
-
-            if context['subassembly']:
-                st.markdown("#### 🔧 Subassembly")
-                for page in context['subassembly']:
-                    completed = st.session_state.subassembly_confirmed
-                    st.markdown(f"- Page {page}: {'✅' if completed else '❌'}")
-
-            if context['final_assembly']:
-                st.markdown("#### 🩱 Final Assembly")
-                for page in context['final_assembly']:
-                    done = page in st.session_state.finalassembly_confirmed_pages
-                    st.markdown(f"- Page {page}: {'✅' if done else '❌'}")
-
-            if st.session_state.step == 4:
-                st.markdown("#### 🔄 Handover: ✅")
-
         st.header(f"Working on Subtask: {context['subtask_name']}")
 
         # Step 1: Collect parts
@@ -153,12 +131,10 @@ if group_num:
             if user_question and user_question.lower() != 'n':
                 answer = call_chatgpt(user_question, context)
                 st.info(f"🤖 ChatGPT says: {answer}")
-                st.info(f"🧠 ChatGPT says: {answer}")
 
         # Step 2: Subassembly
         elif st.session_state.step == 1:
             if isinstance(context['subassembly'], (list, tuple)) and len(context['subassembly']) > 0:
-            if context['subassembly']:
                 st.subheader("Step 2: Perform subassembly")
                 for page in context['subassembly']:
                     manual_path = f"manuals/page_{page}.png"
@@ -172,7 +148,6 @@ if group_num:
                 if user_question and user_question.lower() != 'n':
                     answer = call_chatgpt(user_question, context)
                     st.info(f"🤖 ChatGPT says: {answer}")
-                    st.info(f"🧠 ChatGPT says: {answer}")
             else:
                 st.write("No subassembly required for this subtask.")
                 st.session_state.subassembly_confirmed = True
@@ -194,7 +169,6 @@ if group_num:
                 if user_question and user_question.lower() != 'n':
                     answer = call_chatgpt(user_question, context)
                     st.info(f"🤖 ChatGPT says: {answer}")
-                    st.info(f"🧠 ChatGPT says: {answer}")
             else:
                 st.write("You are the first group — no prior handover needed.")
                 st.session_state.previous_step_confirmed = True
@@ -205,7 +179,6 @@ if group_num:
         elif st.session_state.step == 3:
             st.subheader("Step 4: Perform the final assembly")
             subassembly_pages = set(context['subassembly']) if isinstance(context['subassembly'], (list, tuple)) else set()
-            subassembly_pages = set(context['subassembly']) if context['subassembly'] else set()
             final_assembly_pages = context['final_assembly']
             for page in final_assembly_pages:
                 manual_path = f"manuals/page_{page}.png"
@@ -231,7 +204,6 @@ if group_num:
             if user_question and user_question.lower() != 'n':
                 answer = call_chatgpt(user_question, context)
                 st.info(f"🤖 ChatGPT says: {answer}")
-                st.info(f"🧠 ChatGPT says: {answer}")
 
         # Step 5: Handover
         elif st.session_state.step == 4:
