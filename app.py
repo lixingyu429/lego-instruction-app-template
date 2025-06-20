@@ -86,6 +86,8 @@ If an image is provided, refer to it directly to guide the student through this 
 
 # --- Streamlit UI ---
 
+st.set_page_config(layout="wide")
+
 st.title("Student Assembly Assistant")
 
 group_num = st.number_input("Enter your student group number:", min_value=1, step=1)
@@ -115,8 +117,8 @@ if group_num:
             "current_image": None,
         }
 
-        # Layout with fixed progress tracker on right
-        col_main, col_tracker = st.columns([4, 1])
+        # Layout with fixed progress tracker on left
+        col_tracker, col_main = st.columns([1, 4], gap="large")
 
         with col_tracker:
             st.markdown("### 🛍️ Progress Tracker")
