@@ -16,13 +16,11 @@ client = OpenAI(api_key=api_key)
 
 # Load your DataFrame from CSV file
 CSV_FILE = "lego_subtasks.csv"
-
 if not os.path.exists(CSV_FILE):
     st.error(f"CSV file '{CSV_FILE}' not found in the app directory.")
     st.stop()
 
 df = pd.read_csv(CSV_FILE)
-
 
 # Helper function to display images with caption
 def show_image(image_path, caption=""):
@@ -95,7 +93,6 @@ if group_num:
     else:
         st.success(f"Welcome, Group {group_num}! You have {len(group_tasks)} subtask(s).")
 
-        # Use session state to keep track of current subtask and step
         if 'task_idx' not in st.session_state:
             st.session_state.task_idx = 0
             st.session_state.step = 0
@@ -104,7 +101,6 @@ if group_num:
             st.session_state.previous_step_confirmed = False
             st.session_state.collected_parts_confirmed = False
 
-        # Get current subtask row
         current_task = group_tasks.iloc[st.session_state.task_idx]
         context = {
             "subtask_name": current_task["Subtask Name"],
@@ -126,7 +122,7 @@ if group_num:
             if st.button("I have collected all parts"):
                 st.session_state.collected_parts_confirmed = True
                 st.session_state.step = 1
-                st.experimental_rerun()
+                st.rerun()
             user_question = st.text_input("Ask a question or type 'n' if you haven't collected parts yet:")
             if user_question and user_question.lower() != 'n':
                 answer = call_chatgpt(user_question, context)
@@ -143,7 +139,7 @@ if group_num:
                 if st.button("I have completed the subassembly"):
                     st.session_state.subassembly_confirmed = True
                     st.session_state.step = 2
-                    st.experimental_rerun()
+                    st.rerun()
                 user_question = st.text_input("Ask a question about the subassembly or type 'n' if not ready:")
                 if user_question and user_question.lower() != 'n':
                     answer = call_chatgpt(user_question, context)
@@ -152,7 +148,7 @@ if group_num:
                 st.write("No subassembly required for this subtask.")
                 st.session_state.subassembly_confirmed = True
                 st.session_state.step = 2
-                st.experimental_rerun()
+                st.rerun()
 
         # Step 3: Receive from previous group
         elif st.session_state.step == 2:
@@ -164,7 +160,7 @@ if group_num:
                 if st.button("I have received the product from the previous group"):
                     st.session_state.previous_step_confirmed = True
                     st.session_state.step = 3
-                    st.experimental_rerun()
+                    st.rerun()
                 user_question = st.text_input("Ask a question about receiving or type 'n' if not ready:")
                 if user_question and user_question.lower() != 'n':
                     answer = call_chatgpt(user_question, context)
@@ -173,7 +169,7 @@ if group_num:
                 st.write("You are the first group — no prior handover needed.")
                 st.session_state.previous_step_confirmed = True
                 st.session_state.step = 3
-                st.experimental_rerun()
+                st.rerun()
 
         # Step 4: Final Assembly
         elif st.session_state.step == 3:
@@ -189,17 +185,17 @@ if group_num:
                     if page not in st.session_state.finalassembly_confirmed_pages:
                         if st.button(f"Confirm subassembled part is ready for page {page}"):
                             st.session_state.finalassembly_confirmed_pages.add(page)
-                            st.experimental_rerun()
+                            st.rerun()
                 else:
                     show_image(manual_path, f"Final Assembly - Page {page}")
                     if page not in st.session_state.finalassembly_confirmed_pages:
                         if st.button(f"Confirm completed Final Assembly - Page {page}"):
                             st.session_state.finalassembly_confirmed_pages.add(page)
-                            st.experimental_rerun()
+                            st.rerun()
             if len(st.session_state.finalassembly_confirmed_pages) == len(final_assembly_pages):
                 st.success("All final assembly pages completed!")
                 st.session_state.step = 4
-                st.experimental_rerun()
+                st.rerun()
             user_question = st.text_input("Ask a question about the final assembly or type 'n' if not ready:")
             if user_question and user_question.lower() != 'n':
                 answer = call_chatgpt(user_question, context)
@@ -222,6 +218,6 @@ if group_num:
                     st.session_state.finalassembly_confirmed_pages = set()
                     st.session_state.previous_step_confirmed = False
                     st.session_state.collected_parts_confirmed = False
-                    st.experimental_rerun()
+                    st.rerun()
                 else:
                     st.info("You have completed all your subtasks.")
