@@ -1,13 +1,13 @@
 import streamlit as st
 import pandas as pd
 import os
-import ast
 from PIL import Image
 from openai import OpenAI
 import base64
 
 # Initialize OpenAI client
-api_key = os.getenv("OPENAI_API_KEY")
+import os as _os
+api_key = _os.getenv("OPENAI_API_KEY")
 if not api_key:
     st.error("Please set your OPENAI_API_KEY environment variable!")
     st.stop()
@@ -21,10 +21,6 @@ if not os.path.exists(CSV_FILE):
     st.stop()
 
 df = pd.read_csv(CSV_FILE)
-
-# Parse Subassembly and Final Assembly fields as tuples/lists
-df['Subassembly'] = df['Subassembly'].apply(lambda x: ast.literal_eval(x) if pd.notna(x) else [])
-df['Final Assembly'] = df['Final Assembly'].apply(lambda x: ast.literal_eval(x) if pd.notna(x) else [])
 
 # Helper function to display images with caption
 def show_image(image_path, caption=""):
@@ -41,7 +37,7 @@ def call_chatgpt(user_question, context):
     if image_path and os.path.exists(image_path):
         with open(image_path, "rb") as img_file:
             image_content = img_file.read()
-
+    
     messages = [
         {
             "role": "system",
