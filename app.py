@@ -21,7 +21,6 @@ if not os.path.exists(CSV_FILE):
     st.stop()
 
 df = pd.read_csv(CSV_FILE)
-
 df['Subassembly'] = df['Subassembly'].apply(lambda x: ast.literal_eval(x) if pd.notna(x) else [])
 df['Final Assembly'] = df['Final Assembly'].apply(lambda x: ast.literal_eval(x) if pd.notna(x) else [])
 
@@ -87,30 +86,6 @@ Additional info:
     return response.choices[0].message.content.strip()
 
 st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
-
-# --- Custom Styling ---
-st.markdown("""
-    <style>
-    .centered-container {
-        max-width: 800px;
-        margin: auto;
-        padding: 1rem;
-        background-color: #ffffff;
-    }
-    .floating-tracker {
-        position: fixed;
-        top: 25%;
-        right: 2rem;
-        background-color: #f0f2f6;
-        padding: 1rem;
-        border-radius: 12px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.2);
-        max-width: 250px;
-        z-index: 100;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
 st.title("Student Assembly Assistant")
 
 left, center, right = st.columns([1, 2, 1])
@@ -143,38 +118,25 @@ with center:
                 "current_image": None,
             }
 
-            # Toggle Progress Tracker
-            show_tracker = st.checkbox("📊 Show Progress Tracker", value=True)
-
-            if show_tracker:
-                progress_html = f"""
-                <div class="floating-tracker">
-                    <h4>🛍️ Progress Tracker</h4>
-                    <p><b>Subtask:</b> {context['subtask_name']}</p>
-                    <p><b>Bag:</b> {context['bag']}</p>
-                    <hr>
-                    <b> Collect Parts:</b> {'✅' if st.session_state.collected_parts_confirmed else '❌'}<br>
-                """
-
+            with st.expander("\u25b6 Progress Tracker", expanded=True):
+                st.markdown(f"""
+                **Subtask:** {context['subtask_name']}  
+                **Bag:** {context['bag']}  
+                **Collect Parts:** {'✅' if st.session_state.collected_parts_confirmed else '❌'}
+                """)
                 if context['subassembly']:
-                    progress_html += "<b> Subassembly:</b><br>"
+                    st.markdown("**Subassembly:**")
                     for page in context['subassembly']:
                         completed = st.session_state.subassembly_confirmed
-                        progress_html += f"&nbsp;&nbsp;&nbsp;Page {page}: {'✅' if completed else '❌'}<br>"
-
+                        st.markdown(f"- Page {page}: {'✅' if completed else '❌'}")
                 if context['final_assembly']:
-                    progress_html += "<b> Final Assembly:</b><br>"
+                    st.markdown("**Final Assembly:**")
                     for page in context['final_assembly']:
                         done = page in st.session_state.finalassembly_confirmed_pages
-                        progress_html += f"&nbsp;&nbsp;&nbsp;Page {page}: {'✅' if done else '❌'}<br>"
-
+                        st.markdown(f"- Page {page}: {'✅' if done else '❌'}")
                 if st.session_state.step == 4:
-                    progress_html += "<b> Handover:</b> ✅"
+                    st.markdown("**Handover:** ✅")
 
-                progress_html += "</div>"
-                st.markdown(progress_html, unsafe_allow_html=True)
-
-        # Step 1: Collect parts
         if st.session_state.step == 0:
             st.subheader("Step 1: Collect required parts")
             part_img = f"combined_subtasks/{context['subtask_name']}.png"
@@ -189,7 +151,6 @@ with center:
                 answer = call_chatgpt(user_question, context)
                 show_gpt_response(answer)
 
-        # Step 2: Subassembly
         elif st.session_state.step == 1:
             if context['subassembly']:
                 st.subheader("Step 2: Perform subassembly")
@@ -211,7 +172,6 @@ with center:
                 st.session_state.step = 2
                 st.rerun()
 
-        # Step 3: Receive from previous group
         elif st.session_state.step == 2:
             idx = df.index.get_loc(current_task.name)
             if idx > 0:
@@ -232,7 +192,6 @@ with center:
                 st.session_state.step = 3
                 st.rerun()
 
-        # Step 4: Final Assembly
         elif st.session_state.step == 3:
             st.subheader("Step 4: Perform the final assembly")
             subassembly_pages = set(context['subassembly']) if context['subassembly'] else set()
@@ -262,7 +221,6 @@ with center:
                 answer = call_chatgpt(user_question, context)
                 show_gpt_response(answer)
 
-        # Step 5: Handover
         elif st.session_state.step == 4:
             idx = df.index.get_loc(current_task.name)
             if idx + 1 < len(df):
