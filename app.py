@@ -90,8 +90,33 @@ st.title("Student Assembly Assistant")
 
 left, center, right = st.columns([1, 2, 1])
 
+with left:
+    with st.expander("\u25b6 Progress Tracker", expanded=True):
+        group_num_preview = st.session_state.get("group_num", 1)
+        group_tasks_preview = df[df['Student Group'] == group_num_preview]
+        if 'task_idx' in st.session_state and not group_tasks_preview.empty:
+            current_task_preview = group_tasks_preview.iloc[st.session_state.task_idx]
+            st.markdown(f"""
+            **Subtask:** {current_task_preview['Subtask Name']}  
+            **Bag:** {current_task_preview['Bag']}  
+            **Collect Parts:** {'✅' if st.session_state.collected_parts_confirmed else '❌'}
+            """)
+            if current_task_preview['Subassembly']:
+                st.markdown("**Subassembly:**")
+                for page in current_task_preview['Subassembly']:
+                    completed = st.session_state.subassembly_confirmed
+                    st.markdown(f"- Page {page}: {'✅' if completed else '❌'}")
+            if current_task_preview['Final Assembly']:
+                st.markdown("**Final Assembly:**")
+                for page in current_task_preview['Final Assembly']:
+                    done = page in st.session_state.finalassembly_confirmed_pages
+                    st.markdown(f"- Page {page}: {'✅' if done else '❌'}")
+            if st.session_state.step == 4:
+                st.markdown("**Handover:** ✅")
+
 with center:
     group_num = st.number_input("Enter your student group number:", min_value=1, step=1)
+    st.session_state.group_num = group_num
 
     if group_num:
         group_tasks = df[df['Student Group'] == group_num]
@@ -117,25 +142,6 @@ with center:
                 "previous_step": None,
                 "current_image": None,
             }
-
-            with st.expander("\u25b6 Progress Tracker", expanded=True):
-                st.markdown(f"""
-                **Subtask:** {context['subtask_name']}  
-                **Bag:** {context['bag']}  
-                **Collect Parts:** {'✅' if st.session_state.collected_parts_confirmed else '❌'}
-                """)
-                if context['subassembly']:
-                    st.markdown("**Subassembly:**")
-                    for page in context['subassembly']:
-                        completed = st.session_state.subassembly_confirmed
-                        st.markdown(f"- Page {page}: {'✅' if completed else '❌'}")
-                if context['final_assembly']:
-                    st.markdown("**Final Assembly:**")
-                    for page in context['final_assembly']:
-                        done = page in st.session_state.finalassembly_confirmed_pages
-                        st.markdown(f"- Page {page}: {'✅' if done else '❌'}")
-                if st.session_state.step == 4:
-                    st.markdown("**Handover:** ✅")
 
         if st.session_state.step == 0:
             st.subheader("Step 1: Collect required parts")
