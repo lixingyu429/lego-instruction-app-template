@@ -6,6 +6,29 @@ from PIL import Image
 from openai import OpenAI
 import base64
 
+# Custom CSS for floating tracker
+st.markdown("""
+    <style>
+    .floating-tracker {
+        position: fixed;
+        top: 80px;
+        left: 20px;
+        width: 250px;
+        background-color: #f0f2f6;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+        z-index: 9999;
+    }
+    .floating-tracker h4 {
+        margin-top: 0;
+    }
+    .main-content {
+        margin-left: 290px;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # Initialize OpenAI client
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
@@ -117,29 +140,38 @@ if group_num:
             "current_image": None,
         }
 
-        # Layout with fixed progress tracker on left
-        col_tracker, col_main = st.columns([1, 4], gap="large")
-
-        with col_tracker:
-            st.markdown("### 🛍️ Progress Tracker")
-            st.markdown(f"**Subtask:** `{context['subtask_name']}`")
-            st.markdown(f"**Bag:** `{context['bag']}`")
-            st.markdown("#### 💼 Steps")
-            st.markdown(f"- Collect Parts: {'✅' if st.session_state.collected_parts_confirmed else '❌'}")
+        # Floating progress tracker
+        with st.container():
+            tracker_html = """
+            <div class="floating-tracker">
+                <h4>🛍️ Progress Tracker</h4>
+                <p><strong>Subtask:</strong> {}</p>
+                <p><strong>Bag:</strong> {}</p>
+                <h5>💼 Steps</h5>
+                <ul>
+                    <li>Collect Parts: {}</li>
+            """.format(
+                context['subtask_name'],
+                context['bag'],
+                '✅' if st.session_state.collected_parts_confirmed else '❌'
+            )
             if context['subassembly']:
-                st.markdown("#### 🔧 Subassembly")
+                tracker_html += "<h5>🔧 Subassembly</h5>"
                 for page in context['subassembly']:
-                    completed = st.session_state.subassembly_confirmed
-                    st.markdown(f"- Page {page}: {'✅' if completed else '❌'}")
+                    status = '✅' if st.session_state.subassembly_confirmed else '❌'
+                    tracker_html += f"<li>Page {page}: {status}</li>"
             if context['final_assembly']:
-                st.markdown("#### 🩱 Final Assembly")
+                tracker_html += "<h5>🩱 Final Assembly</h5>"
                 for page in context['final_assembly']:
                     done = page in st.session_state.finalassembly_confirmed_pages
-                    st.markdown(f"- Page {page}: {'✅' if done else '❌'}")
+                    tracker_html += f"<li>Page {page}: {'✅' if done else '❌'}</li>"
             if st.session_state.step == 4:
-                st.markdown("#### 🔄 Handover: ✅")
+                tracker_html += "<h5>🔄 Handover: ✅</h5>"
+            tracker_html += "</ul></div>"
+            st.markdown(tracker_html, unsafe_allow_html=True)
 
-        with col_main:
+        with st.container():
+            st.markdown("<div class='main-content'>", unsafe_allow_html=True)
             st.header(f"Working on Subtask: {context['subtask_name']}")
 
             # Step 1: Collect parts
@@ -250,3 +282,4 @@ if group_num:
                         st.rerun()
                     else:
                         st.info("You have completed all your subtasks.")
+            st.markdown("</div>", unsafe_allow_html=True)
