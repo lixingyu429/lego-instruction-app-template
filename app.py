@@ -88,82 +88,88 @@ If an image is provided, refer to it directly to guide the student through this 
 
 st.set_page_config(layout="wide")
 
+# Custom styling
 st.markdown("""
     <style>
+    .centered-container {
+        max-width: 800px;
+        margin: auto;
+        padding: 1rem;
+        background-color: #ffffff;
+    }
     .floating-tracker {
         position: fixed;
-        bottom: 1rem;
-        right: 1rem;
+        top: 25%;
+        right: 2rem;
         background-color: #f0f2f6;
         padding: 1rem;
         border-radius: 12px;
         box-shadow: 0 0 10px rgba(0,0,0,0.2);
         max-width: 250px;
         z-index: 100;
-        overflow-y: auto;
     }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("Student Assembly Assistant")
 
-group_num = st.number_input("Enter your student group number:", min_value=1, step=1)
+left, center, right = st.columns([1, 2, 1])
 
-if group_num:
-    group_tasks = df[df['Student Group'] == group_num]
-    if group_tasks.empty:
-        st.error(f"No subtasks found for Group {group_num}.")
-    else:
-        st.success(f"Welcome, Group {group_num}! You have {len(group_tasks)} subtask(s).")
+with center:
+    group_num = st.number_input("Enter your student group number:", min_value=1, step=1)
 
-        if 'task_idx' not in st.session_state:
-            st.session_state.task_idx = 0
-            st.session_state.step = 0
-            st.session_state.subassembly_confirmed = False
-            st.session_state.finalassembly_confirmed_pages = set()
-            st.session_state.previous_step_confirmed = False
-            st.session_state.collected_parts_confirmed = False
+    if group_num:
+        group_tasks = df[df['Student Group'] == group_num]
+        if group_tasks.empty:
+            st.error(f"No subtasks found for Group {group_num}.")
+        else:
+            st.success(f"Welcome, Group {group_num}! You have {len(group_tasks)} subtask(s).")
 
-        current_task = group_tasks.iloc[st.session_state.task_idx]
-        context = {
-            "subtask_name": current_task["Subtask Name"],
-            "subassembly": current_task["Subassembly"],
-            "final_assembly": current_task["Final Assembly"],
-            "bag": current_task["Bag"],
-            "previous_step": None,
-            "current_image": None,
-        }
+            if 'task_idx' not in st.session_state:
+                st.session_state.task_idx = 0
+                st.session_state.step = 0
+                st.session_state.subassembly_confirmed = False
+                st.session_state.finalassembly_confirmed_pages = set()
+                st.session_state.previous_step_confirmed = False
+                st.session_state.collected_parts_confirmed = False
 
-        # Progress Tracker HTML injection
-        progress_html = f"""
-        <div class="floating-tracker">
-            <h4>🛍️ Progress Tracker</h4>
-            <p><b>Subtask:</b> {context['subtask_name']}</p>
-            <p><b>Bag:</b> {context['bag']}</p>
-            <hr>
-            <b>💼 Collect Parts:</b> {'✅' if st.session_state.collected_parts_confirmed else '❌'}<br>
-        """
+            current_task = group_tasks.iloc[st.session_state.task_idx]
+            context = {
+                "subtask_name": current_task["Subtask Name"],
+                "subassembly": current_task["Subassembly"],
+                "final_assembly": current_task["Final Assembly"],
+                "bag": current_task["Bag"],
+                "previous_step": None,
+                "current_image": None,
+            }
 
-        if context['subassembly']:
-            progress_html += "<b>🔧 Subassembly:</b><br>"
-            for page in context['subassembly']:
-                completed = st.session_state.subassembly_confirmed
-                progress_html += f"&nbsp;&nbsp;&nbsp;Page {page}: {'✅' if completed else '❌'}<br>"
+            # Progress Tracker
+            progress_html = f"""
+            <div class="floating-tracker">
+                <h4>🛍️ Progress Tracker</h4>
+                <p><b>Subtask:</b> {context['subtask_name']}</p>
+                <p><b>Bag:</b> {context['bag']}</p>
+                <hr>
+                <b>💼 Collect Parts:</b> {'✅' if st.session_state.collected_parts_confirmed else '❌'}<br>
+            """
 
-        if context['final_assembly']:
-            progress_html += "<b>🩱 Final Assembly:</b><br>"
-            for page in context['final_assembly']:
-                done = page in st.session_state.finalassembly_confirmed_pages
-                progress_html += f"&nbsp;&nbsp;&nbsp;Page {page}: {'✅' if done else '❌'}<br>"
+            if context['subassembly']:
+                progress_html += "<b>🔧 Subassembly:</b><br>"
+                for page in context['subassembly']:
+                    completed = st.session_state.subassembly_confirmed
+                    progress_html += f"&nbsp;&nbsp;&nbsp;Page {page}: {'✅' if completed else '❌'}<br>"
 
-        if st.session_state.step == 4:
-            progress_html += "<b>🔄 Handover:</b> ✅"
+            if context['final_assembly']:
+                progress_html += "<b>🩱 Final Assembly:</b><br>"
+                for page in context['final_assembly']:
+                    done = page in st.session_state.finalassembly_confirmed_pages
+                    progress_html += f"&nbsp;&nbsp;&nbsp;Page {page}: {'✅' if done else '❌'}<br>"
 
-        progress_html += "</div>"
-        st.markdown(progress_html, unsafe_allow_html=True)
+            if st.session_state.step == 4:
+                progress_html += "<b>🔄 Handover:</b> ✅"
 
-        # Main task flow
-        st.header(f"Working on Subtask: {context['subtask_name']}")
+            progress_html += "</div>"
+            st.markdown(progress_html, unsafe_allow_html=True)
 
         # Step 1: Collect parts
         if st.session_state.step == 0:
