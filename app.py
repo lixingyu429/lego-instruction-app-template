@@ -30,7 +30,7 @@ df['Final Assembly'] = df['Final Assembly'].apply(lambda x: ast.literal_eval(x) 
 def show_image(image_path, caption=""):
     if os.path.exists(image_path):
         img = Image.open(image_path)
-        st.image(img, caption=caption, width=400)
+        st.image(img, caption=caption)
     else:
         st.warning(f"Image not found: {image_path}")
 
@@ -54,7 +54,7 @@ def call_chatgpt(user_question, context):
                     "type": "text",
                     "text": f"""
 You are helping a student on subtask: {context['subtask_name']}.
-They asked: \"{user_question}\"
+They asked: "{user_question}"
 
 Additional info:
 - Bag: {context['bag']}
@@ -86,25 +86,6 @@ If an image is provided, refer to it directly to guide the student through this 
 
 # --- Streamlit UI ---
 
-st.set_page_config(layout="wide")
-
-st.markdown("""
-    <style>
-    .floating-tracker {
-        position: fixed;
-        bottom: 1rem;
-        right: 1rem;
-        background-color: #f0f2f6;
-        padding: 1rem;
-        border-radius: 12px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.2);
-        max-width: 250px;
-        z-index: 100;
-        overflow-y: auto;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
 st.title("Student Assembly Assistant")
 
 group_num = st.number_input("Enter your student group number:", min_value=1, step=1)
@@ -134,35 +115,6 @@ if group_num:
             "current_image": None,
         }
 
-        # Progress Tracker HTML injection
-        progress_html = f"""
-        <div class="floating-tracker">
-            <h4>🛍️ Progress Tracker</h4>
-            <p><b>Subtask:</b> {context['subtask_name']}</p>
-            <p><b>Bag:</b> {context['bag']}</p>
-            <hr>
-            <b>💼 Collect Parts:</b> {'✅' if st.session_state.collected_parts_confirmed else '❌'}<br>
-        """
-
-        if context['subassembly']:
-            progress_html += "<b>🔧 Subassembly:</b><br>"
-            for page in context['subassembly']:
-                completed = st.session_state.subassembly_confirmed
-                progress_html += f"&nbsp;&nbsp;&nbsp;Page {page}: {'✅' if completed else '❌'}<br>"
-
-        if context['final_assembly']:
-            progress_html += "<b>🩱 Final Assembly:</b><br>"
-            for page in context['final_assembly']:
-                done = page in st.session_state.finalassembly_confirmed_pages
-                progress_html += f"&nbsp;&nbsp;&nbsp;Page {page}: {'✅' if done else '❌'}<br>"
-
-        if st.session_state.step == 4:
-            progress_html += "<b>🔄 Handover:</b> ✅"
-
-        progress_html += "</div>"
-        st.markdown(progress_html, unsafe_allow_html=True)
-
-        # Main task flow
         st.header(f"Working on Subtask: {context['subtask_name']}")
 
         # Step 1: Collect parts
@@ -178,11 +130,11 @@ if group_num:
             user_question = st.text_input("Ask a question or type 'n' if you haven't collected parts yet:")
             if user_question and user_question.lower() != 'n':
                 answer = call_chatgpt(user_question, context)
-                st.info(f"🧠 ChatGPT says: {answer}")
+                st.info(f"🤖 ChatGPT says: {answer}")
 
         # Step 2: Subassembly
         elif st.session_state.step == 1:
-            if context['subassembly']:
+            if isinstance(context['subassembly'], (list, tuple)) and len(context['subassembly']) > 0:
                 st.subheader("Step 2: Perform subassembly")
                 for page in context['subassembly']:
                     manual_path = f"manuals/page_{page}.png"
@@ -195,7 +147,7 @@ if group_num:
                 user_question = st.text_input("Ask a question about the subassembly or type 'n' if not ready:")
                 if user_question and user_question.lower() != 'n':
                     answer = call_chatgpt(user_question, context)
-                    st.info(f"🧠 ChatGPT says: {answer}")
+                    st.info(f"🤖 ChatGPT says: {answer}")
             else:
                 st.write("No subassembly required for this subtask.")
                 st.session_state.subassembly_confirmed = True
@@ -216,7 +168,7 @@ if group_num:
                 user_question = st.text_input("Ask a question about receiving or type 'n' if not ready:")
                 if user_question and user_question.lower() != 'n':
                     answer = call_chatgpt(user_question, context)
-                    st.info(f"🧠 ChatGPT says: {answer}")
+                    st.info(f"🤖 ChatGPT says: {answer}")
             else:
                 st.write("You are the first group — no prior handover needed.")
                 st.session_state.previous_step_confirmed = True
@@ -226,7 +178,7 @@ if group_num:
         # Step 4: Final Assembly
         elif st.session_state.step == 3:
             st.subheader("Step 4: Perform the final assembly")
-            subassembly_pages = set(context['subassembly']) if context['subassembly'] else set()
+            subassembly_pages = set(context['subassembly']) if isinstance(context['subassembly'], (list, tuple)) else set()
             final_assembly_pages = context['final_assembly']
             for page in final_assembly_pages:
                 manual_path = f"manuals/page_{page}.png"
@@ -251,7 +203,7 @@ if group_num:
             user_question = st.text_input("Ask a question about the final assembly or type 'n' if not ready:")
             if user_question and user_question.lower() != 'n':
                 answer = call_chatgpt(user_question, context)
-                st.info(f"🧠 ChatGPT says: {answer}")
+                st.info(f"🤖 ChatGPT says: {answer}")
 
         # Step 5: Handover
         elif st.session_state.step == 4:
