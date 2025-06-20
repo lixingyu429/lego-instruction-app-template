@@ -150,17 +150,17 @@ with center:
                 <p><b>Subtask:</b> {context['subtask_name']}</p>
                 <p><b>Bag:</b> {context['bag']}</p>
                 <hr>
-                <b>💼 Collect Parts:</b> {'✅' if st.session_state.collected_parts_confirmed else '❌'}<br>
+                <b> Collect Parts:</b> {'✅' if st.session_state.collected_parts_confirmed else '❌'}<br>
             """
 
             if context['subassembly']:
-                progress_html += "<b>🔧 Subassembly:</b><br>"
+                progress_html += "<b> Subassembly:</b><br>"
                 for page in context['subassembly']:
                     completed = st.session_state.subassembly_confirmed
                     progress_html += f"&nbsp;&nbsp;&nbsp;Page {page}: {'✅' if completed else '❌'}<br>"
 
             if context['final_assembly']:
-                progress_html += "<b>🩱 Final Assembly:</b><br>"
+                progress_html += "<b> Final Assembly:</b><br>"
                 for page in context['final_assembly']:
                     done = page in st.session_state.finalassembly_confirmed_pages
                     progress_html += f"&nbsp;&nbsp;&nbsp;Page {page}: {'✅' if done else '❌'}<br>"
