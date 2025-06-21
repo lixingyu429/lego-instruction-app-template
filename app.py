@@ -78,7 +78,6 @@ Additional info:
 
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 
-# ==== Student Info Input (only shown initially) ====
 if "team_num" not in st.session_state or "student_name" not in st.session_state:
     st.header("Welcome to the Assembly Task")
     st.session_state.team_num = st.number_input("Enter your student team number:", min_value=1, step=1)
@@ -90,7 +89,6 @@ if "team_num" not in st.session_state or "student_name" not in st.session_state:
         st.warning("Please enter both your name and team number to continue.")
         st.stop()
 
-# ==== Sidebar Tracker ====
 with st.sidebar:
     st.header("Progress Tracker")
     st.markdown(f"**Student:** {st.session_state.student_name}")
@@ -117,7 +115,6 @@ with st.sidebar:
         if st.session_state.step == 4:
             st.markdown("**Handover:** ✅")
 
-# ==== Main Logic ====
 left, center, right = st.columns([1, 2, 1])
 with center:
     team_num = st.session_state.team_num
@@ -150,14 +147,14 @@ with center:
             part_img = f"combined_subtasks/{context['subtask_name']}.png"
             context['current_image'] = part_img
             show_image(part_img, "Parts Required")
+            user_question = st.text_input("Ask any questions about collecting parts:")
+            if user_question and user_question.lower() != 'n':
+                answer = call_chatgpt(user_question, context)
+                show_gpt_response(answer)
             if st.button("I have collected all parts"):
                 st.session_state.collected_parts_confirmed = True
                 st.session_state.step = 1
                 st.rerun()
-            user_question = st.text_input("Ask any questions:")
-            if user_question and user_question.lower() != 'n':
-                answer = call_chatgpt(user_question, context)
-                show_gpt_response(answer)
 
         elif st.session_state.step == 1:
             if context['subassembly']:
@@ -166,14 +163,14 @@ with center:
                     manual_path = f"manuals/page_{page}.png"
                     context['current_image'] = manual_path
                     show_image(manual_path, f"Subassembly - Page {page}")
+                user_question = st.text_input("Ask a question about subassembly:")
+                if user_question and user_question.lower() != 'n':
+                    answer = call_chatgpt(user_question, context)
+                    show_gpt_response(answer)
                 if st.button("I have completed the subassembly"):
                     st.session_state.subassembly_confirmed = True
                     st.session_state.step = 2
                     st.rerun()
-                user_question = st.text_input("Ask a question about the subassembly or type 'n' if not ready:")
-                if user_question and user_question.lower() != 'n':
-                    answer = call_chatgpt(user_question, context)
-                    show_gpt_response(answer)
             else:
                 st.write("No subassembly required for this subtask.")
                 st.session_state.subassembly_confirmed = True
@@ -188,19 +185,16 @@ with center:
                 giver_team = prev_row['Student Team']
                 receiver_team = team_num
                 receive_img_path = f"handling-image/receive-t{giver_team}-t{receiver_team}.png"
-
                 st.subheader(f"Receive the semi-finished product from Team {giver_team}")
                 show_image(receive_img_path)
-
+                user_question = st.text_input("Ask a question about receiving the product:")
+                if user_question and user_question.lower() != 'n':
+                    answer = call_chatgpt(user_question, context)
+                    show_gpt_response(answer)
                 if st.button("I have received the product from the previous team"):
                     st.session_state.previous_step_confirmed = True
                     st.session_state.step = 3
                     st.rerun()
-
-                user_question = st.text_input("Ask a question about receiving or type 'n' if not ready:")
-                if user_question and user_question.lower() != 'n':
-                    answer = call_chatgpt(user_question, context)
-                    show_gpt_response(answer)
             else:
                 st.write("You are the first team — no prior handover needed.")
                 st.session_state.previous_step_confirmed = True
@@ -227,14 +221,14 @@ with center:
                         if st.button(f"Confirm completed Final Assembly - Page {page}"):
                             st.session_state.finalassembly_confirmed_pages.add(page)
                             st.rerun()
+            user_question = st.text_input("Ask a question about the final assembly:")
+            if user_question and user_question.lower() != 'n':
+                answer = call_chatgpt(user_question, context)
+                show_gpt_response(answer)
             if len(st.session_state.finalassembly_confirmed_pages) == len(final_assembly_pages):
                 st.success("All final assembly pages completed!")
                 st.session_state.step = 4
                 st.rerun()
-            user_question = st.text_input("Ask a question about the final assembly or type 'n' if not ready:")
-            if user_question and user_question.lower() != 'n':
-                answer = call_chatgpt(user_question, context)
-                show_gpt_response(answer)
 
         elif st.session_state.step == 4:
             idx = df.index.get_loc(current_task.name)
