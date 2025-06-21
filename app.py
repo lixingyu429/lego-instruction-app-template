@@ -6,7 +6,6 @@ from PIL import Image
 from openai import OpenAI
 import base64
 
-# verison 5
 # Page config
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 
@@ -103,7 +102,7 @@ Additional info:
     )
     return response.choices[0].message.content.strip()
 
-# Initial input page
+# --- Session State Initialization ---
 if "team_num" not in st.session_state or "student_name" not in st.session_state:
     st.header("Welcome to the Assembly Task")
     team_num_input = st.number_input("Enter your student team number:", min_value=1, step=1)
@@ -112,19 +111,140 @@ if "team_num" not in st.session_state or "student_name" not in st.session_state:
         st.session_state.team_num = team_num_input
         st.session_state.student_name = student_name_input
         st.success("Information saved. You can proceed.")
-        st.rerun()
+        st.experimental_rerun()
     else:
         st.warning("Please enter both your name and team number to continue.")
     st.stop()
 
-# Sidebar: Progress Tracker + Assistant
+if "chatgpt_answer" not in st.session_state:
+    st.session_state.chatgpt_answer = ""
+
+if "chatgpt_question" not in st.session_state:
+    st.session_state.chatgpt_question = ""
+
+if "task_idx" not in st.session_state:
+    st.session_state.task_idx = 0
+    st.session_state.step = 0
+    st.session_state.subassembly_confirmed = False
+    st.session_state.finalassembly_confirmed_pages = set()
+    st.session_state.previous_step_confirmed = False
+    st.session_state.collected_parts_confirmed = False
+
+# --- Floating ChatGPT Assistant Panel ---
+st.markdown("""
+<style>
+    #chatgpt-floating-panel {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 350px;
+        max-height: 420px;
+        background: white;
+        border: 2px solid #4285f4;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(66, 133, 244, 0.3);
+        padding: 10px;
+        z-index: 9999;
+        overflow-y: auto;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+    #chatgpt-floating-panel h4 {
+        margin-top: 0;
+        color: #4285f4;
+    }
+    #chatgpt-textarea {
+        width: 100%;
+        height: 60px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        padding: 5px;
+        resize: none;
+        font-size: 14px;
+        font-family: inherit;
+    }
+    #chatgpt-submit {
+        margin-top: 8px;
+        background-color: #4285f4;
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 14px;
+        font-family: inherit;
+    }
+    #chatgpt-submit:disabled {
+        background-color: #a0c3ff;
+        cursor: not-allowed;
+    }
+    #chatgpt-response {
+        margin-top: 10px;
+        font-size: 14px;
+        color: #202124;
+        white-space: pre-wrap;
+    }
+    /* Hide the internal input and button widgets */
+    div[data-testid="stTextInput"] {display:none !important;}
+    div[data-testid="stButton"] {display:none !important;}
+</style>
+
+<div id="chatgpt-floating-panel">
+    <h4>💬 ChatGPT Assistant</h4>
+    <textarea id="chatgpt-textarea" placeholder="Ask a question about your current step..."></textarea>
+    <button id="chatgpt-submit" disabled>Ask</button>
+    <div id="chatgpt-response">
+        {response}
+    </div>
+</div>
+
+<script>
+    // Enable the Ask button only if textarea has content
+    const textarea = window.parent.document.getElementById('chatgpt-textarea');
+    const submitBtn = window.parent.document.getElementById('chatgpt-submit');
+    const responseDiv = window.parent.document.getElementById('chatgpt-response');
+
+    textarea.addEventListener('input', function() {
+        submitBtn.disabled = textarea.value.trim() === "";
+    });
+
+    // When clicking Ask, update Streamlit text_input and submit button via Streamlit events
+    submitBtn.addEventListener('click', () => {
+        const user_input = textarea.value.trim();
+        if (!user_input) return;
+
+        // Set Streamlit text_input value
+        const textInput = window.parent.document.querySelector('input[data-testid="stTextInput"]');
+        if (textInput) {
+            textInput.value = user_input;
+            textInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        // Click the Streamlit internal submit button
+        const submitBtnInternal = window.parent.document.querySelector('button[data-testid="stButton"]');
+        if (submitBtnInternal) {
+            submitBtnInternal.click();
+        }
+    });
+</script>
+""".format(response=st.session_state.chatgpt_answer.replace('\n','<br>')), unsafe_allow_html=True)
+
+# --- Hidden input and button for Streamlit to capture user input and trigger rerun ---
+user_question = st.text_input("Your question to ChatGPT:", key="chatgpt_input_internal")
+
+if st.button("Ask ChatGPT", key="chatgpt_submit_internal"):
+    if user_question.strip() and "context" in st.session_state:
+        answer = call_chatgpt(user_question.strip(), st.session_state.context)
+        st.session_state.chatgpt_answer = answer
+        st.session_state.chatgpt_question = user_question.strip()
+
+# --- Sidebar: Progress Tracker ---
 with st.sidebar:
     st.header("Progress Tracker")
     st.markdown(f"**Student:** {st.session_state.student_name}")
     st.markdown(f"**Team:** {st.session_state.team_num}")
 
     team_tasks_preview = df[df['Student Team'] == st.session_state.team_num]
-    if 'task_idx' in st.session_state and not team_tasks_preview.empty:
+    if not team_tasks_preview.empty and 'task_idx' in st.session_state:
         current_task_preview = team_tasks_preview.iloc[st.session_state.task_idx]
         st.markdown(f"""
         **Subtask:** {current_task_preview['Subtask Name']}  
@@ -144,23 +264,7 @@ with st.sidebar:
         if st.session_state.get('step', 0) == 4:
             st.markdown("**Handover:** ✅")
 
-    with st.expander("💬 ChatGPT Assistant", expanded=False):
-        st.markdown("Ask a question about your current step.")
-        step_keys = ["q_step0", "q_step1", "q_step2", "q_step3", "q_step4"]
-        current_step = st.session_state.get("step", 0)
-
-        if current_step in range(len(step_keys)):
-            key = step_keys[current_step]
-            user_question = st.text_input("Your question to ChatGPT:", key=key)
-            if user_question and user_question.lower() != 'n':
-                context = st.session_state.get("context", {})
-                if context:
-                    answer = call_chatgpt(user_question, context)
-                    show_gpt_response(answer)
-        else:
-            st.info("No active step to ask about.")
-
-# Main layout
+# --- Main layout ---
 left, center, _ = st.columns([1, 2, 1])
 with center:
     team_num = st.session_state.team_num
@@ -170,14 +274,6 @@ with center:
     if team_tasks.empty:
         st.error(f"No subtasks found for Team {team_num}.")
     else:
-        if 'task_idx' not in st.session_state:
-            st.session_state.task_idx = 0
-            st.session_state.step = 0
-            st.session_state.subassembly_confirmed = False
-            st.session_state.finalassembly_confirmed_pages = set()
-            st.session_state.previous_step_confirmed = False
-            st.session_state.collected_parts_confirmed = False
-
         current_task = team_tasks.iloc[st.session_state.task_idx]
         context = {
             "subtask_name": current_task["Subtask Name"],
@@ -201,7 +297,7 @@ with center:
                 if st.button("I have collected all parts"):
                     st.session_state.collected_parts_confirmed = True
                     st.session_state.step = 1
-                    st.rerun()
+                    st.experimental_rerun()
 
         elif step == 1:
             if context['subassembly']:
@@ -215,12 +311,12 @@ with center:
                     if st.button("I have completed the subassembly"):
                         st.session_state.subassembly_confirmed = True
                         st.session_state.step = 2
-                        st.rerun()
+                        st.experimental_rerun()
             else:
                 st.write("No subassembly required for this subtask.")
                 st.session_state.subassembly_confirmed = True
                 st.session_state.step = 2
-                st.rerun()
+                st.experimental_rerun()
 
         elif step == 2:
             idx = df.index.get_loc(current_task.name)
@@ -238,12 +334,12 @@ with center:
                     if st.button("I have received the product from the previous team"):
                         st.session_state.previous_step_confirmed = True
                         st.session_state.step = 3
-                        st.rerun()
+                        st.experimental_rerun()
             else:
                 st.write("You are the first team — no prior handover needed.")
                 st.session_state.previous_step_confirmed = True
                 st.session_state.step = 3
-                st.rerun()
+                st.experimental_rerun()
 
         elif step == 3:
             st.subheader("Step 4: Perform the final assembly")
@@ -259,18 +355,18 @@ with center:
                     if page not in st.session_state.finalassembly_confirmed_pages:
                         if st.button(f"Confirm subassembled part is ready for page {page}"):
                             st.session_state.finalassembly_confirmed_pages.add(page)
-                            st.rerun()
+                            st.experimental_rerun()
                 else:
                     show_image(manual_path, f"Final Assembly - Page {page}")
                     if page not in st.session_state.finalassembly_confirmed_pages:
                         if st.button(f"Confirm completed Final Assembly - Page {page}"):
                             st.session_state.finalassembly_confirmed_pages.add(page)
-                            st.rerun()
+                            st.experimental_rerun()
 
             if len(st.session_state.finalassembly_confirmed_pages) == len(final_assembly_pages):
                 st.success("All final assembly pages completed!")
                 st.session_state.step = 4
-                st.rerun()
+                st.experimental_rerun()
 
         elif step == 4:
             idx = df.index.get_loc(current_task.name)
@@ -294,6 +390,6 @@ with center:
                     st.session_state.finalassembly_confirmed_pages = set()
                     st.session_state.previous_step_confirmed = False
                     st.session_state.collected_parts_confirmed = False
-                    st.rerun()
+                    st.experimental_rerun()
                 else:
                     st.info("You have completed all your subtasks.")
