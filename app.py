@@ -24,10 +24,28 @@ df = pd.read_csv(CSV_FILE)
 df['Subassembly'] = df['Subassembly'].apply(lambda x: ast.literal_eval(x) if pd.notna(x) else [])
 df['Final Assembly'] = df['Final Assembly'].apply(lambda x: ast.literal_eval(x) if pd.notna(x) else [])
 
+st.set_page_config(layout="wide", initial_sidebar_state="expanded")
+
+# Initialize session state variables
+if 'task_idx' not in st.session_state:
+    st.session_state.task_idx = 0
+if 'step' not in st.session_state:
+    st.session_state.step = 0
+if 'subassembly_confirmed_pages' not in st.session_state:
+    st.session_state.subassembly_confirmed_pages = set()
+if 'finalassembly_confirmed_pages' not in st.session_state:
+    st.session_state.finalassembly_confirmed_pages = set()
+if 'previous_step_confirmed' not in st.session_state:
+    st.session_state.previous_step_confirmed = False
+if 'collected_parts_confirmed' not in st.session_state:
+    st.session_state.collected_parts_confirmed = False
+if 'group_num' not in st.session_state:
+    st.session_state.group_num = 1
+
 def show_image(image_path, caption=""):
     if os.path.exists(image_path):
         img = Image.open(image_path)
-        st.image(img, caption=caption, use_column_width=True)
+        st.image(img, caption=caption, use_container_width=True)
     else:
         st.warning(f"Image not found: {image_path}")
 
@@ -77,7 +95,6 @@ Additional info:
     )
     return response.choices[0].message.content.strip()
 
-st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 st.title("Student Assembly Assistant")
 
 with st.sidebar:
