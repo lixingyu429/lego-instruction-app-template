@@ -7,6 +7,8 @@ from openai import OpenAI
 import base64
 import hashlib
 
+# version 7
+
 # Page config
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 
@@ -106,7 +108,7 @@ if "team_num" not in st.session_state or "student_name" not in st.session_state:
         st.session_state.team_num = team_num_input
         st.session_state.student_name = student_name_input
         st.success("Information saved. You can proceed.")
-        st.experimental_rerun()
+        st.rerun()
     else:
         st.warning("Please enter both your name and team number to continue.")
     st.stop()
@@ -206,7 +208,7 @@ with center:
             if st.button("I have collected all parts"):
                 st.session_state.collected_parts_confirmed = True
                 st.session_state.step = 1
-                st.experimental_rerun()
+                st.rerun()
 
     elif step == 1:
         if context['subassembly']:
@@ -216,14 +218,14 @@ with center:
                 if page not in st.session_state.subassembly_confirmed_pages:
                     if st.button(f"✅ Confirm completed Subassembly - Page {page}"):
                         st.session_state.subassembly_confirmed_pages.add(page)
-                        st.experimental_rerun()
+                        st.rerun()
             if len(st.session_state.subassembly_confirmed_pages) == len(context['subassembly']):
                 st.success("All subassembly pages completed!")
                 st.session_state.step = 2
-                st.experimental_rerun()
+                st.rerun()
         else:
             st.session_state.step = 2
-            st.experimental_rerun()
+            st.rerun()
 
     elif step == 2:
         idx = df.index.get_loc(current_task.name)
@@ -238,11 +240,11 @@ with center:
                 if st.button("I have received the product from the previous team"):
                     st.session_state.previous_step_confirmed = True
                     st.session_state.step = 3
-                    st.experimental_rerun()
+                    st.rerun()
         else:
             st.session_state.previous_step_confirmed = True
             st.session_state.step = 3
-            st.experimental_rerun()
+            st.rerun()
 
     elif step == 3:
         st.subheader("Step 4: Perform the final assembly")
@@ -256,18 +258,18 @@ with center:
             if page not in st.session_state.finalassembly_confirmed_pages:
                 if page in subassembly_pages:
                     # Overlapping page confirmation button text
-                    if st.button(f"✅ I have prepared the subassembled part for Page {page}"):
+                    if st.button(f"The subassembled part for Page {page} is ready"):
                         st.session_state.finalassembly_confirmed_pages.add(page)
-                        st.experimental_rerun()
+                        st.rerun()
                 else:
                     if st.button(f"Confirm completed Final Assembly - Page {page}"):
                         st.session_state.finalassembly_confirmed_pages.add(page)
-                        st.experimental_rerun()
+                        st.rerun()
 
         if len(st.session_state.finalassembly_confirmed_pages) == len(final_assembly_pages):
             st.success("All final assembly pages completed!")
             st.session_state.step = 4
-            st.experimental_rerun()
+            st.rerun()
 
     elif step == 4:
         idx = df.index.get_loc(current_task.name)
@@ -286,6 +288,6 @@ with center:
                 st.session_state.finalassembly_confirmed_pages = set()
                 st.session_state.previous_step_confirmed = False
                 st.session_state.collected_parts_confirmed = False
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.info("You have completed all your subtasks.")
