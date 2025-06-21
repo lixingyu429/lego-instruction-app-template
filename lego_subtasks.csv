@@ -1,4 +1,4 @@
-Subtask Name,Page Numbers,Bag,Dependency Flags,Student Group,Final Assembly,Subassembly
+Subtask Name,Page Numbers,Bag,Dependency Flags,Student Team,Final Assembly,Subassembly
 subtask 1-1,"(4, 7, 8, 9, 10)",bag 1,"(0, 0, 0, 0)",1,"(7, 8, 9, 10)",()
 subtask 1-2,"(4, 11, 12, 13)",bag 1,"(0, 0, 0)",2,"(11, 12, 13)",()
 subtask 1-3,"(4, 14, 15, 16, 17)",bag 1,"(0, 0, 0, 0)",3,"(14, 15, 16, 17)",()
