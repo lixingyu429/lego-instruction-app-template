@@ -6,18 +6,18 @@ from PIL import Image
 from openai import OpenAI
 import base64
 
-# Inject CSS for fixed-position ChatGPT assistant
+# Inject CSS for fixed-position ChatGPT assistant container
 st.markdown(
     """
     <style>
-    /* Make the ChatGPT assistant sticky/fixed on the right side */
-    .chatgpt-assistant {
+    /* Fixed ChatGPT assistant container */
+    #chatgpt-assistant-container {
         position: fixed;
-        top: 100px;   /* distance from top */
-        right: 20px;  /* distance from right */
-        width: 350px; /* fixed width */
-        max-height: 80vh;  /* max viewport height */
-        overflow-y: auto;  /* internal scrolling */
+        top: 100px;
+        right: 20px;
+        width: 350px;
+        max-height: 80vh;
+        overflow-y: auto;
         background-color: #f9f9f9;
         padding: 10px;
         border: 1px solid #ddd;
@@ -26,9 +26,9 @@ st.markdown(
         z-index: 1000;
     }
 
-    /* Adjust main content margin so it doesn't get covered by assistant */
+    /* Adjust main content margin so it doesn't get covered */
     main > div > div:first-child {
-        margin-right: 380px; /* at least assistant width + some margin */
+        margin-right: 380px;
     }
     </style>
     """,
@@ -139,7 +139,7 @@ if "team_num" not in st.session_state or "student_name" not in st.session_state:
         st.session_state.team_num = team_num_input
         st.session_state.student_name = student_name_input
         st.success("Information saved. You can proceed.")
-        st.rerun()
+        st.experimental_rerun()
     else:
         st.warning("Please enter both your name and team number to continue.")
     st.stop()
@@ -170,7 +170,7 @@ with st.sidebar:
         if st.session_state.get('step', 0) == 4:
             st.markdown("**Handover:** ✅")
 
-left, center, right = st.columns([1, 2, 1])
+left, center = st.columns([1, 3])
 
 with center:
     team_num = st.session_state.team_num
@@ -208,7 +208,7 @@ with center:
                 if st.button("I have collected all parts"):
                     st.session_state.collected_parts_confirmed = True
                     st.session_state.step = 1
-                    st.rerun()
+                    st.experimental_rerun()
 
         elif st.session_state.step == 1:
             if context['subassembly']:
@@ -222,12 +222,12 @@ with center:
                     if st.button("I have completed the subassembly"):
                         st.session_state.subassembly_confirmed = True
                         st.session_state.step = 2
-                        st.rerun()
+                        st.experimental_rerun()
             else:
                 st.write("No subassembly required for this subtask.")
                 st.session_state.subassembly_confirmed = True
                 st.session_state.step = 2
-                st.rerun()
+                st.experimental_rerun()
 
         elif st.session_state.step == 2:
             idx = df.index.get_loc(current_task.name)
@@ -245,12 +245,12 @@ with center:
                     if st.button("I have received the product from the previous team"):
                         st.session_state.previous_step_confirmed = True
                         st.session_state.step = 3
-                        st.rerun()
+                        st.experimental_rerun()
             else:
                 st.write("You are the first team — no prior handover needed.")
                 st.session_state.previous_step_confirmed = True
                 st.session_state.step = 3
-                st.rerun()
+                st.experimental_rerun()
 
         elif st.session_state.step == 3:
             st.subheader("Step 4: Perform the final assembly")
@@ -266,18 +266,18 @@ with center:
                     if page not in st.session_state.finalassembly_confirmed_pages:
                         if st.button(f"Confirm subassembled part is ready for page {page}"):
                             st.session_state.finalassembly_confirmed_pages.add(page)
-                            st.rerun()
+                            st.experimental_rerun()
                 else:
                     show_image(manual_path, f"Final Assembly - Page {page}")
                     if page not in st.session_state.finalassembly_confirmed_pages:
                         if st.button(f"Confirm completed Final Assembly - Page {page}"):
                             st.session_state.finalassembly_confirmed_pages.add(page)
-                            st.rerun()
+                            st.experimental_rerun()
 
             if len(st.session_state.finalassembly_confirmed_pages) == len(final_assembly_pages):
                 st.success("All final assembly pages completed!")
                 st.session_state.step = 4
-                st.rerun()
+                st.experimental_rerun()
 
         elif st.session_state.step == 4:
             idx = df.index.get_loc(current_task.name)
@@ -301,22 +301,27 @@ with center:
                     st.session_state.finalassembly_confirmed_pages = set()
                     st.session_state.previous_step_confirmed = False
                     st.session_state.collected_parts_confirmed = False
-                    st.rerun()
+                    st.experimental_rerun()
                 else:
                     st.info("You have completed all your subtasks.")
 
-# Right-side fixed ChatGPT assistant panel
-with right:
-    st.markdown('<div class="chatgpt-assistant">', unsafe_allow_html=True)
-    with st.expander("💬 ChatGPT Assistant", expanded=False):
-        step_keys = ["q_step0", "q_step1", "q_step2", "q_step3"]
-        current_step = st.session_state.get("step", 0)
-        if current_step in range(len(step_keys)):
-            key = step_keys[current_step]
-            user_question = st.text_input("Ask ChatGPT a question:", key=key)
-            if user_question and user_question.lower() != 'n':
-                answer = call_chatgpt(user_question, context)
-                show_gpt_response(answer)
-        else:
-            st.write("No active step for ChatGPT questions.")
+# -- FIXED ChatGPT assistant on right, injected outside columns --
+chatgpt_container = st.empty()
+
+with chatgpt_container.container():
+    st.markdown('<div id="chatgpt-assistant-container">', unsafe_allow_html=True)
+    st.markdown("## 💬 ChatGPT Assistant")
+
+    step_keys = ["q_step0", "q_step1", "q_step2", "q_step3"]
+    current_step = st.session_state.get("step", 0)
+
+    if current_step in range(len(step_keys)):
+        key = step_keys[current_step]
+        user_question = st.text_input("Ask ChatGPT a question:", key=key)
+        if user_question and user_question.lower() != 'n':
+            answer = call_chatgpt(user_question, context)
+            show_gpt_response(answer)
+    else:
+        st.write("No active step for ChatGPT questions.")
+
     st.markdown('</div>', unsafe_allow_html=True)
