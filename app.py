@@ -154,25 +154,25 @@ with center:
             "current_image": None,
         }
 
-        # Step 0: Collect required parts
+        # Step 0: Collect parts
         if st.session_state.step == 0:
             st.subheader("Step 1: Collect required parts")
             part_img = f"combined_subtasks/{context['subtask_name']}.png"
             context['current_image'] = part_img
             show_image(part_img, "Parts Required")
-
+        
             if not st.session_state.get('collected_parts_confirmed', False):
                 if st.button("I have collected all parts"):
                     st.session_state.collected_parts_confirmed = True
                     st.session_state.step = 1
                     st.rerun()
             else:
-                user_question = st.text_input("Ask any questions about collecting parts:")
+                user_question = st.text_input("Ask any questions about collecting parts:", key="q_step0")
                 if user_question and user_question.lower() != 'n':
                     answer = call_chatgpt(user_question, context)
                     show_gpt_response(answer)
-
-        # Step 1: Perform subassembly
+        
+        # Step 1: Subassembly
         elif st.session_state.step == 1:
             if context['subassembly']:
                 st.subheader("Step 2: Perform subassembly")
@@ -180,14 +180,14 @@ with center:
                     manual_path = f"manuals/page_{page}.png"
                     context['current_image'] = manual_path
                     show_image(manual_path, f"Subassembly - Page {page}")
-
+        
                 if not st.session_state.get('subassembly_confirmed', False):
                     if st.button("I have completed the subassembly"):
                         st.session_state.subassembly_confirmed = True
                         st.session_state.step = 2
                         st.rerun()
                 else:
-                    user_question = st.text_input("Ask a question about subassembly:")
+                    user_question = st.text_input("Ask a question about subassembly:", key="q_step1")
                     if user_question and user_question.lower() != 'n':
                         answer = call_chatgpt(user_question, context)
                         show_gpt_response(answer)
@@ -196,8 +196,8 @@ with center:
                 st.session_state.subassembly_confirmed = True
                 st.session_state.step = 2
                 st.rerun()
-
-        # Step 2: Receive semi-finished product from previous team
+        
+        # Step 2: Receive semi-finished product
         elif st.session_state.step == 2:
             idx = df.index.get_loc(current_task.name)
             if idx > 0:
@@ -206,17 +206,17 @@ with center:
                 giver_team = prev_row['Student Team']
                 receiver_team = team_num
                 receive_img_path = f"handling-image/receive-t{giver_team}-t{receiver_team}.png"
-
+        
                 st.subheader(f"Receive the semi-finished product from Team {giver_team}")
                 show_image(receive_img_path)
-
+        
                 if not st.session_state.get('previous_step_confirmed', False):
                     if st.button("I have received the product from the previous team"):
                         st.session_state.previous_step_confirmed = True
                         st.session_state.step = 3
                         st.rerun()
                 else:
-                    user_question = st.text_input("Ask a question about receiving the product:")
+                    user_question = st.text_input("Ask a question about receiving the product:", key="q_step2")
                     if user_question and user_question.lower() != 'n':
                         answer = call_chatgpt(user_question, context)
                         show_gpt_response(answer)
@@ -225,13 +225,13 @@ with center:
                 st.session_state.previous_step_confirmed = True
                 st.session_state.step = 3
                 st.rerun()
-
-        # Step 3: Perform final assembly
+        
+        # Step 3: Final assembly
         elif st.session_state.step == 3:
             st.subheader("Step 4: Perform the final assembly")
             subassembly_pages = set(context['subassembly']) if context['subassembly'] else set()
             final_assembly_pages = context['final_assembly']
-
+        
             for page in final_assembly_pages:
                 manual_path = f"manuals/page_{page}.png"
                 context['current_image'] = manual_path
@@ -248,13 +248,13 @@ with center:
                         if st.button(f"Confirm completed Final Assembly - Page {page}"):
                             st.session_state.finalassembly_confirmed_pages.add(page)
                             st.rerun()
-
+        
             if len(st.session_state.finalassembly_confirmed_pages) == len(final_assembly_pages):
                 st.success("All final assembly pages completed!")
                 st.session_state.step = 4
                 st.rerun()
-
-            user_question = st.text_input("Ask a question about the final assembly:")
+        
+            user_question = st.text_input("Ask a question about the final assembly:", key="q_step3")
             if user_question and user_question.lower() != 'n':
                 answer = call_chatgpt(user_question, context)
                 show_gpt_response(answer)
