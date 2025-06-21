@@ -56,8 +56,7 @@ Additional info:
 - Bag: {context['bag']}
 - Subassembly Pages: {context['subassembly']}
 - Final Assembly Pages: {context['final_assembly']}
-- Previous Step: {context['previous_step']}
-"""
+- Previous Step: {context['previous_step']}"""
                 }
             ]
         }
@@ -95,7 +94,7 @@ with st.sidebar:
         if current_task_preview['Subassembly']:
             st.markdown("**Subassembly:**")
             for page in current_task_preview['Subassembly']:
-                completed = st.session_state.subassembly_confirmed
+                completed = page in st.session_state.subassembly_confirmed_pages
                 st.markdown(f"- Page {page}: {'✅' if completed else '❌'}")
         if current_task_preview['Final Assembly']:
             st.markdown("**Final Assembly:**")
@@ -121,7 +120,7 @@ with center:
             if 'task_idx' not in st.session_state:
                 st.session_state.task_idx = 0
                 st.session_state.step = 0
-                st.session_state.subassembly_confirmed = False
+                st.session_state.subassembly_confirmed_pages = set()
                 st.session_state.finalassembly_confirmed_pages = set()
                 st.session_state.previous_step_confirmed = False
                 st.session_state.collected_parts_confirmed = False
@@ -136,14 +135,14 @@ with center:
                 "current_image": None,
             }
 
-            show_chat = st.toggle("💬 Show ChatGPT Help")
+            show_chat = st.toggle("\U0001F4AC Show ChatGPT Help")
             if show_chat:
                 user_question = st.text_input("Ask ChatGPT a question about your current step:")
                 if user_question and user_question.lower() != 'n':
                     answer = call_chatgpt(user_question, context)
                     st.markdown(f"""
                     <div style='text-align: left; padding: 10px; background-color: #e8f0fe; border-left: 5px solid #4285f4; border-radius: 8px; margin-bottom: 1em;'>
-                        🧠 <strong>ChatGPT says:</strong><br>{answer}
+                        \U0001F9E0 <strong>ChatGPT says:</strong><br>{answer}
                     </div>
                     """, unsafe_allow_html=True)
 
@@ -156,10 +155,6 @@ with center:
                     st.session_state.collected_parts_confirmed = True
                     st.session_state.step = 1
                     st.rerun()
-                user_question = st.text_input("Ask any questions:")
-                if user_question and user_question.lower() != 'n':
-                    answer = call_chatgpt(user_question, context)
-                    show_gpt_response(answer)
 
             elif st.session_state.step == 1:
                 if context['subassembly']:
@@ -168,17 +163,16 @@ with center:
                         manual_path = f"manuals/page_{page}.png"
                         context['current_image'] = manual_path
                         show_image(manual_path, f"Subassembly - Page {page}")
-                    if st.button("I have completed the subassembly"):
-                        st.session_state.subassembly_confirmed = True
+                        if page not in st.session_state.subassembly_confirmed_pages:
+                            if st.button(f"Confirm completed Subassembly - Page {page}"):
+                                st.session_state.subassembly_confirmed_pages.add(page)
+                                st.rerun()
+                    if len(st.session_state.subassembly_confirmed_pages) == len(context['subassembly']):
+                        st.success("All subassembly pages completed!")
                         st.session_state.step = 2
                         st.rerun()
-                    user_question = st.text_input("Ask a question about the subassembly or type 'n' if not ready:")
-                    if user_question and user_question.lower() != 'n':
-                        answer = call_chatgpt(user_question, context)
-                        show_gpt_response(answer)
                 else:
                     st.write("No subassembly required for this subtask.")
-                    st.session_state.subassembly_confirmed = True
                     st.session_state.step = 2
                     st.rerun()
 
@@ -192,10 +186,6 @@ with center:
                         st.session_state.previous_step_confirmed = True
                         st.session_state.step = 3
                         st.rerun()
-                    user_question = st.text_input("Ask a question about receiving or type 'n' if not ready:")
-                    if user_question and user_question.lower() != 'n':
-                        answer = call_chatgpt(user_question, context)
-                        show_gpt_response(answer)
                 else:
                     st.write("You are the first group — no prior handover needed.")
                     st.session_state.previous_step_confirmed = True
@@ -226,10 +216,6 @@ with center:
                     st.success("All final assembly pages completed!")
                     st.session_state.step = 4
                     st.rerun()
-                user_question = st.text_input("Ask a question about the final assembly or type 'n' if not ready:")
-                if user_question and user_question.lower() != 'n':
-                    answer = call_chatgpt(user_question, context)
-                    show_gpt_response(answer)
 
             elif st.session_state.step == 4:
                 idx = df.index.get_loc(current_task.name)
@@ -243,7 +229,7 @@ with center:
                     if st.session_state.task_idx + 1 < len(group_tasks):
                         st.session_state.task_idx += 1
                         st.session_state.step = 0
-                        st.session_state.subassembly_confirmed = False
+                        st.session_state.subassembly_confirmed_pages = set()
                         st.session_state.finalassembly_confirmed_pages = set()
                         st.session_state.previous_step_confirmed = False
                         st.session_state.collected_parts_confirmed = False
