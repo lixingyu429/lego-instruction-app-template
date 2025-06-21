@@ -133,7 +133,7 @@ if "task_idx" not in st.session_state:
 # --- Floating ChatGPT Assistant Panel ---
 st.markdown("""
 <style>
-    #chatgpt-floating-panel {
+    #chatgpt-floating-panel {{
         position: fixed;
         bottom: 20px;
         right: 20px;
@@ -147,12 +147,12 @@ st.markdown("""
         z-index: 9999;
         overflow-y: auto;
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    }
-    #chatgpt-floating-panel h4 {
+    }}
+    #chatgpt-floating-panel h4 {{
         margin-top: 0;
         color: #4285f4;
-    }
-    #chatgpt-textarea {
+    }}
+    #chatgpt-textarea {{
         width: 100%;
         height: 60px;
         border: 1px solid #ccc;
@@ -161,8 +161,8 @@ st.markdown("""
         resize: none;
         font-size: 14px;
         font-family: inherit;
-    }
-    #chatgpt-submit {
+    }}
+    #chatgpt-submit {{
         margin-top: 8px;
         background-color: #4285f4;
         color: white;
@@ -172,20 +172,20 @@ st.markdown("""
         cursor: pointer;
         font-size: 14px;
         font-family: inherit;
-    }
-    #chatgpt-submit:disabled {
+    }}
+    #chatgpt-submit:disabled {{
         background-color: #a0c3ff;
         cursor: not-allowed;
-    }
-    #chatgpt-response {
+    }}
+    #chatgpt-response {{
         margin-top: 10px;
         font-size: 14px;
         color: #202124;
         white-space: pre-wrap;
-    }
+    }}
     /* Hide the internal input and button widgets */
-    div[data-testid="stTextInput"] {display:none !important;}
-    div[data-testid="stButton"] {display:none !important;}
+    div[data-testid="stTextInput"] {{display:none !important;}}
+    div[data-testid="stButton"] {{display:none !important;}}
 </style>
 
 <div id="chatgpt-floating-panel">
@@ -203,28 +203,28 @@ st.markdown("""
     const submitBtn = window.parent.document.getElementById('chatgpt-submit');
     const responseDiv = window.parent.document.getElementById('chatgpt-response');
 
-    textarea.addEventListener('input', function() {
+    textarea.addEventListener('input', function() {{
         submitBtn.disabled = textarea.value.trim() === "";
-    });
+    }});
 
     // When clicking Ask, update Streamlit text_input and submit button via Streamlit events
-    submitBtn.addEventListener('click', () => {
+    submitBtn.addEventListener('click', () => {{
         const user_input = textarea.value.trim();
         if (!user_input) return;
 
         // Set Streamlit text_input value
         const textInput = window.parent.document.querySelector('input[data-testid="stTextInput"]');
-        if (textInput) {
+        if (textInput) {{
             textInput.value = user_input;
-            textInput.dispatchEvent(new Event('input', { bubbles: true }));
-        }
+            textInput.dispatchEvent(new Event('input', {{ bubbles: true }}));
+        }}
 
         // Click the Streamlit internal submit button
         const submitBtnInternal = window.parent.document.querySelector('button[data-testid="stButton"]');
-        if (submitBtnInternal) {
+        if (submitBtnInternal) {{
             submitBtnInternal.click();
-        }
-    });
+        }}
+    }});
 </script>
 """.format(response=st.session_state.chatgpt_answer.replace('\n','<br>')), unsafe_allow_html=True)
 
