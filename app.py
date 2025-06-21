@@ -39,7 +39,6 @@ def show_gpt_response(answer):
     """, unsafe_allow_html=True)
 
 def call_chatgpt(user_question, context):
-    # Collect all images related to the subtask (subassembly + final assembly)
     image_messages = []
 
     # Subassembly images
@@ -52,7 +51,7 @@ def call_chatgpt(user_question, context):
                 "type": "image_url",
                 "image_url": {
                     "url": f"data:image/png;base64,{image_content}",
-                    "detail": f"Subassembly page {page}"
+                    "detail": "high"  # must be 'low', 'high', or 'auto'
                 }
             })
 
@@ -66,7 +65,7 @@ def call_chatgpt(user_question, context):
                 "type": "image_url",
                 "image_url": {
                     "url": f"data:image/png;base64,{image_content}",
-                    "detail": f"Final assembly page {page}"
+                    "detail": "high"  # must be 'low', 'high', or 'auto'
                 }
             })
 
