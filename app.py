@@ -39,11 +39,36 @@ def show_gpt_response(answer):
     """, unsafe_allow_html=True)
 
 def call_chatgpt(user_question, context):
-    image_path = context.get('current_image')
-    image_content = None
-    if image_path and os.path.exists(image_path):
-        with open(image_path, "rb") as img_file:
-            image_content = img_file.read()
+    # Collect all images related to the subtask (subassembly + final assembly)
+    image_messages = []
+
+    # Subassembly images
+    for page in context.get('subassembly', []):
+        img_path = f"manuals/page_{page}.png"
+        if os.path.exists(img_path):
+            with open(img_path, "rb") as img_file:
+                image_content = base64.b64encode(img_file.read()).decode()
+            image_messages.append({
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/png;base64,{image_content}",
+                    "detail": f"Subassembly page {page}"
+                }
+            })
+
+    # Final Assembly images
+    for page in context.get('final_assembly', []):
+        img_path = f"manuals/page_{page}.png"
+        if os.path.exists(img_path):
+            with open(img_path, "rb") as img_file:
+                image_content = base64.b64encode(img_file.read()).decode()
+            image_messages.append({
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/png;base64,{image_content}",
+                    "detail": f"Final assembly page {page}"
+                }
+            })
 
     messages = [
         {
@@ -66,17 +91,9 @@ Additional info:
 - Previous Step: {context['previous_step']}
 """
                 }
-            ]
+            ] + image_messages
         }
     ]
-    if image_content:
-        messages[1]["content"].append({
-            "type": "image_url",
-            "image_url": {
-                "url": f"data:image/png;base64,{base64.b64encode(image_content).decode()}",
-                "detail": "high"
-            }
-        })
 
     response = client.chat.completions.create(
         model="gpt-4o",
@@ -87,7 +104,7 @@ Additional info:
 
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 
-# Initial page for entering team number and student name
+# First page: Enter team number and student name
 if "team_num" not in st.session_state or "student_name" not in st.session_state:
     st.header("Welcome to the Assembly Task")
     team_num_input = st.number_input("Enter your student team number:", min_value=1, step=1)
@@ -154,13 +171,13 @@ with center:
             "current_image": None,
         }
 
-        # Step 0: Collect parts
+        # Step 0: Collect required parts
         if st.session_state.step == 0:
             st.subheader("Step 1: Collect required parts")
             part_img = f"combined_subtasks/{context['subtask_name']}.png"
             context['current_image'] = part_img
             show_image(part_img, "Parts Required")
-        
+
             if not st.session_state.get('collected_parts_confirmed', False):
                 if st.button("I have collected all parts"):
                     st.session_state.collected_parts_confirmed = True
@@ -171,8 +188,8 @@ with center:
                 if user_question and user_question.lower() != 'n':
                     answer = call_chatgpt(user_question, context)
                     show_gpt_response(answer)
-        
-        # Step 1: Subassembly
+
+        # Step 1: Perform subassembly
         elif st.session_state.step == 1:
             if context['subassembly']:
                 st.subheader("Step 2: Perform subassembly")
@@ -180,7 +197,7 @@ with center:
                     manual_path = f"manuals/page_{page}.png"
                     context['current_image'] = manual_path
                     show_image(manual_path, f"Subassembly - Page {page}")
-        
+
                 if not st.session_state.get('subassembly_confirmed', False):
                     if st.button("I have completed the subassembly"):
                         st.session_state.subassembly_confirmed = True
@@ -196,8 +213,8 @@ with center:
                 st.session_state.subassembly_confirmed = True
                 st.session_state.step = 2
                 st.rerun()
-        
-        # Step 2: Receive semi-finished product
+
+        # Step 2: Receive semi-finished product from previous team
         elif st.session_state.step == 2:
             idx = df.index.get_loc(current_task.name)
             if idx > 0:
@@ -206,10 +223,10 @@ with center:
                 giver_team = prev_row['Student Team']
                 receiver_team = team_num
                 receive_img_path = f"handling-image/receive-t{giver_team}-t{receiver_team}.png"
-        
+
                 st.subheader(f"Receive the semi-finished product from Team {giver_team}")
                 show_image(receive_img_path)
-        
+
                 if not st.session_state.get('previous_step_confirmed', False):
                     if st.button("I have received the product from the previous team"):
                         st.session_state.previous_step_confirmed = True
@@ -225,13 +242,13 @@ with center:
                 st.session_state.previous_step_confirmed = True
                 st.session_state.step = 3
                 st.rerun()
-        
-        # Step 3: Final assembly
+
+        # Step 3: Perform final assembly
         elif st.session_state.step == 3:
             st.subheader("Step 4: Perform the final assembly")
             subassembly_pages = set(context['subassembly']) if context['subassembly'] else set()
             final_assembly_pages = context['final_assembly']
-        
+
             for page in final_assembly_pages:
                 manual_path = f"manuals/page_{page}.png"
                 context['current_image'] = manual_path
@@ -248,12 +265,12 @@ with center:
                         if st.button(f"Confirm completed Final Assembly - Page {page}"):
                             st.session_state.finalassembly_confirmed_pages.add(page)
                             st.rerun()
-        
+
             if len(st.session_state.finalassembly_confirmed_pages) == len(final_assembly_pages):
                 st.success("All final assembly pages completed!")
                 st.session_state.step = 4
                 st.rerun()
-        
+
             user_question = st.text_input("Ask a question about the final assembly:", key="q_step3")
             if user_question and user_question.lower() != 'n':
                 answer = call_chatgpt(user_question, context)
