@@ -277,14 +277,16 @@ with center:
                 else:
                     st.info("You have completed all your subtasks.")
 
-    # ChatGPT assistant Q&A flows here, inside the main center column, after the step UI:
-    step_keys = ["q_step0", "q_step1", "q_step2", "q_step3"]
-    current_step = st.session_state.get("step", 0)
-    if current_step in range(len(step_keys)):
-        key = step_keys[current_step]
-        user_question = st.text_input("Ask ChatGPT a question:", key=key)
-        if user_question and user_question.lower() != 'n':
-            answer = call_chatgpt(user_question, context)
-            show_gpt_response(answer)
-    else:
-        st.write("No active step for ChatGPT questions.")
+# Right-side collapsible ChatGPT assistant
+with right:
+    with st.expander("💬 ChatGPT Assistant", expanded=False):
+        step_keys = ["q_step0", "q_step1", "q_step2", "q_step3"]
+        current_step = st.session_state.get("step", 0)
+        if current_step in range(len(step_keys)):
+            key = step_keys[current_step]
+            user_question = st.text_input("Ask ChatGPT a question:", key=key)
+            if user_question and user_question.lower() != 'n':
+                answer = call_chatgpt(user_question, context)
+                show_gpt_response(answer)
+        else:
+            st.write("No active step for ChatGPT questions.")
