@@ -53,6 +53,13 @@ def get_question_hash(question, context):
     hash_input = question + str(context)
     return hashlib.md5(hash_input.encode()).hexdigest()
 
+def format_task_sequence(df):
+    lines = []
+    for i, row in df.iterrows():
+        line = f"{i+1}. Subtask: {row['Subtask Name']} | Team: {row['Student Team']} | Bag: {row['Bag']} | Subassembly: {row['Subassembly']} | Final Assembly: {row['Final Assembly']}"
+        lines.append(line)
+    return "\n".join(lines)
+
 def call_chatgpt(user_question, context):
     image_messages = []
     for page in context.get('subassembly', []) + context.get('final_assembly', []):
@@ -67,25 +74,32 @@ def call_chatgpt(user_question, context):
                 }
             })
 
+    system_prompt = (
+        "You are a helpful assistant helping a student with a physical LEGO assembly task. "
+        "The student belongs to a team and is working on a specific subtask. "
+        "You also have access to the entire task sequence across all teams to reason about handovers, task order, and dependencies."
+    )
+
+    user_prompt = f"""
+Current subtask: {context['subtask_name']}
+Team Number: {context['team_number']}
+Bag: {context['bag']}
+Subassembly Pages: {context['subassembly']}
+Final Assembly Pages: {context['final_assembly']}
+Previous Step: {context.get('previous_step', 'None')}
+
+Student's question:
+\"{user_question}\"
+
+Here is the full task sequence across all teams:
+{context['task_sequence_text']}
+"""
+
     messages = [
-        {"role": "system", "content": "You are a helpful assistant for a student performing a physical assembly task."},
+        {"role": "system", "content": system_prompt},
         {
             "role": "user",
-            "content": [
-                {
-                    "type": "text",
-                    "text": f"""
-You are helping a student on subtask: {context['subtask_name']}.
-They asked: \"{user_question}\"
-
-Additional info:
-- Bag: {context['bag']}
-- Subassembly Pages: {context['subassembly']}
-- Final Assembly Pages: {context['final_assembly']}
-- Previous Step: {context['previous_step']}
-"""
-                }
-            ] + image_messages
+            "content": [{"type": "text", "text": user_prompt}] + image_messages
         }
     ]
 
@@ -95,6 +109,7 @@ Additional info:
         temperature=0.4,
     )
     return response.choices[0].message.content.strip()
+
 
 # === User Info Input Page ===
 if ("group_name" not in st.session_state or
