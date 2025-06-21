@@ -1,3 +1,4 @@
+# ... keep all your imports the same ...
 import streamlit as st
 import pandas as pd
 import os
@@ -7,7 +8,7 @@ from openai import OpenAI
 import base64
 import hashlib
 
-# version 8
+# version 9
 
 # Page config
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
@@ -57,7 +58,6 @@ def get_question_hash(question, context):
 
 def call_chatgpt(user_question, context):
     image_messages = []
-
     for page in context.get('subassembly', []) + context.get('final_assembly', []):
         img_path = f"manuals/page_{page}.png"
         image_content = get_encoded_image(img_path)
@@ -99,26 +99,26 @@ Additional info:
     )
     return response.choices[0].message.content.strip()
 
-# === New: Initial input page for Group Number, Student Name, Team Name ===
-if ("group_number" not in st.session_state or
+# === Updated Initial Input Page ===
+if ("group_name" not in st.session_state or
     "student_name" not in st.session_state or
-    "team_name" not in st.session_state):
+    "team_number" not in st.session_state):
     
     st.header("Welcome to the Assembly Task")
-    team_name_input = st.text_input("Enter your Group Number:", key="team_name_input")
-    group_number_input = st.number_input("Enter your Team Number:", min_value=1, step=1, key="group_number_input")
-    student_name_input = st.text_input("Enter your Name:", key="student_name_input")
     
+    group_name_input = st.selectbox("Which group are you in?", ["Red", "Yellow", "Blue", "Green"])
+    team_number_input = st.selectbox("Which team number are you in?", [1, 2, 3, 4, 5])
+    student_name_input = st.text_input("Enter your name:")
 
     if st.button("Submit"):
-        if group_number_input and student_name_input.strip() and team_name_input.strip():
-            st.session_state.group_number = group_number_input
+        if student_name_input.strip():
+            st.session_state.group_name = group_name_input
+            st.session_state.team_number = team_number_input
             st.session_state.student_name = student_name_input.strip()
-            st.session_state.team_name = team_name_input.strip()
             st.success("Information saved. You can proceed.")
             st.rerun()
         else:
-            st.warning("Please fill in all fields before submitting.")
+            st.warning("Please enter your name before submitting.")
     st.stop()
 
 # Sidebar: Progress Tracker + Assistant
