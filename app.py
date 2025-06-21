@@ -32,7 +32,7 @@ df['Final Assembly'] = df['Final Assembly'].apply(lambda x: ast.literal_eval(x) 
 def show_image(image_path, caption=""):
     if os.path.exists(image_path):
         img = Image.open(image_path)
-        st.image(img, caption=caption, use_container_widthhh=True)
+        st.image(img, caption=caption, use_container_width=True)
     else:
         st.warning(f"Image not found: {image_path}")
 
