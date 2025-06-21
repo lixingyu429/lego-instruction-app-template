@@ -106,7 +106,7 @@ if "team_num" not in st.session_state or "student_name" not in st.session_state:
         st.session_state.team_num = team_num_input
         st.session_state.student_name = student_name_input
         st.success("Information saved. You can proceed.")
-        st.rerun()
+        st.experimental_rerun()
     else:
         st.warning("Please enter both your name and team number to continue.")
     st.stop()
@@ -191,10 +191,9 @@ with center:
         "previous_step": None,
     }
 
-    # Visual progress bar
+    # Visual progress bar with Subtask ID or Name
     total_steps = 5
     current_progress = min(step / (total_steps - 1), 1.0)
-    
     subtask_id = current_task.get("Subtask ID", current_task["Subtask Name"])
     st.markdown(f"### 🧱 Subtask: {subtask_id}")
     st.progress(current_progress, text=f"Step {step + 1} of {total_steps}")
@@ -207,7 +206,7 @@ with center:
             if st.button("I have collected all parts"):
                 st.session_state.collected_parts_confirmed = True
                 st.session_state.step = 1
-                st.rerun()
+                st.experimental_rerun()
 
     elif step == 1:
         if context['subassembly']:
@@ -215,16 +214,16 @@ with center:
             for page in context['subassembly']:
                 show_image(f"manuals/page_{page}.png", f"Subassembly - Page {page}")
                 if page not in st.session_state.subassembly_confirmed_pages:
-                    if st.button(f"Confirm completed Subassembly - Page {page}"):
+                    if st.button(f"✅ Confirm completed Subassembly - Page {page}"):
                         st.session_state.subassembly_confirmed_pages.add(page)
-                        st.rerun()
+                        st.experimental_rerun()
             if len(st.session_state.subassembly_confirmed_pages) == len(context['subassembly']):
                 st.success("All subassembly pages completed!")
                 st.session_state.step = 2
-                st.rerun()
+                st.experimental_rerun()
         else:
             st.session_state.step = 2
-            st.rerun()
+            st.experimental_rerun()
 
     elif step == 2:
         idx = df.index.get_loc(current_task.name)
@@ -233,35 +232,48 @@ with center:
             context['previous_step'] = prev_row['Subtask Name']
             giver_team = prev_row['Student Team']
             receiver_team = st.session_state.team_num
+            st.subheader(f"Step 3: Receive from Team {giver_team}")
             show_image(f"handling-image/receive-t{giver_team}-t{receiver_team}.png")
             if not st.session_state.previous_step_confirmed:
                 if st.button("I have received the product from the previous team"):
                     st.session_state.previous_step_confirmed = True
                     st.session_state.step = 3
-                    st.rerun()
+                    st.experimental_rerun()
         else:
             st.session_state.previous_step_confirmed = True
             st.session_state.step = 3
-            st.rerun()
+            st.experimental_rerun()
 
     elif step == 3:
         st.subheader("Step 4: Perform the final assembly")
-        for page in context['final_assembly']:
-            show_image(f"manuals/page_{page}.png", f"Final Assembly - Page {page}")
-            if page not in st.session_state.finalassembly_confirmed_pages:
-                if st.button(f"Confirm completed Final Assembly - Page {page}"):
-                    st.session_state.finalassembly_confirmed_pages.add(page)
-                    st.rerun()
+        subassembly_pages = set(context['subassembly']) if context['subassembly'] else set()
+        final_assembly_pages = context['final_assembly']
 
-        if len(st.session_state.finalassembly_confirmed_pages) == len(context['final_assembly']):
+        for page in final_assembly_pages:
+            manual_path = f"manuals/page_{page}.png"
+            show_image(manual_path, f"Final Assembly - Page {page}")
+
+            if page not in st.session_state.finalassembly_confirmed_pages:
+                if page in subassembly_pages:
+                    # Overlapping page confirmation button text
+                    if st.button(f"✅ I have prepared the subassembled part for Page {page}"):
+                        st.session_state.finalassembly_confirmed_pages.add(page)
+                        st.experimental_rerun()
+                else:
+                    if st.button(f"Confirm completed Final Assembly - Page {page}"):
+                        st.session_state.finalassembly_confirmed_pages.add(page)
+                        st.experimental_rerun()
+
+        if len(st.session_state.finalassembly_confirmed_pages) == len(final_assembly_pages):
             st.success("All final assembly pages completed!")
             st.session_state.step = 4
-            st.rerun()
+            st.experimental_rerun()
 
     elif step == 4:
         idx = df.index.get_loc(current_task.name)
         if idx + 1 < len(df):
             next_row = df.iloc[idx + 1]
+            st.subheader(f"Step 5: Handover to Team {next_row['Student Team']}")
             show_image(f"handling-image/give-t{st.session_state.team_num}-t{next_row['Student Team']}.png")
         else:
             st.subheader("🎉 You are the final team — no further handover needed.")
@@ -274,6 +286,6 @@ with center:
                 st.session_state.finalassembly_confirmed_pages = set()
                 st.session_state.previous_step_confirmed = False
                 st.session_state.collected_parts_confirmed = False
-                st.rerun()
+                st.experimental_rerun()
             else:
                 st.info("You have completed all your subtasks.")
