@@ -152,7 +152,7 @@ with st.sidebar:
 
         if current_step in range(len(step_keys)):
             key = step_keys[current_step]
-            user_question = st.text_input("Your question to ChatGPT:", key=key)
+            user_question = st.text_input("Your question to AGEMT:", key=key)
             if user_question and user_question.lower() != 'n':
                 context = st.session_state.get("context", {})
                 if context:
