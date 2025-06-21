@@ -11,11 +11,12 @@ st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
     <style>
-    .floating-assistant {
+    /* Floating effect for the third column (right) */
+    div[data-testid="column"]:nth-of-type(3) > div {
         position: fixed;
         top: 100px;
         right: 30px;
-        width: 300px;
+        width: 320px;
         z-index: 9999;
         background-color: #f9f9f9;
         padding: 1rem;
@@ -160,7 +161,7 @@ with st.sidebar:
         if st.session_state.get('step', 0) == 4:
             st.markdown("**Handover:** ✅")
 
-left, center, _ = st.columns([1, 2, 1])
+left, center, right = st.columns([1, 2, 1])
 
 with center:
     team_num = st.session_state.team_num
@@ -295,20 +296,17 @@ with center:
                 else:
                     st.info("You have completed all your subtasks.")
 
-# Floating ChatGPT Assistant
-st.markdown("<div class='floating-assistant'>", unsafe_allow_html=True)
+# ✅ Right floating ChatGPT Assistant
+with right:
+    st.markdown("### 💬 ChatGPT Assistant")
+    step_keys = ["q_step0", "q_step1", "q_step2", "q_step3"]
+    current_step = st.session_state.get("step", 0)
 
-st.markdown("### 💬 ChatGPT Assistant")
-step_keys = ["q_step0", "q_step1", "q_step2", "q_step3"]
-current_step = st.session_state.get("step", 0)
-
-if current_step in range(len(step_keys)):
-    key = step_keys[current_step]
-    user_question = st.text_input("Ask ChatGPT a question:", key=key)
-    if user_question and user_question.lower() != 'n':
-        answer = call_chatgpt(user_question, context)
-        show_gpt_response(answer)
-else:
-    st.write("No active step for ChatGPT questions.")
-
-st.markdown("</div>", unsafe_allow_html=True)
+    if current_step in range(len(step_keys)):
+        key = step_keys[current_step]
+        user_question = st.text_input("Ask ChatGPT a question:", key=key)
+        if user_question and user_question.lower() != 'n':
+            answer = call_chatgpt(user_question, context)
+            show_gpt_response(answer)
+    else:
+        st.write("No active step for ChatGPT questions.")
