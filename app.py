@@ -7,6 +7,7 @@ from openai import OpenAI
 import base64
 import hashlib
 
+# version 6
 # Page config
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 
