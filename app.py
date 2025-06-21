@@ -6,7 +6,35 @@ from PIL import Image
 from openai import OpenAI
 import base64
 
-# version 3
+# Inject CSS for fixed-position ChatGPT assistant
+st.markdown(
+    """
+    <style>
+    /* Make the ChatGPT assistant sticky/fixed on the right side */
+    .chatgpt-assistant {
+        position: fixed;
+        top: 100px;   /* distance from top */
+        right: 20px;  /* distance from right */
+        width: 350px; /* fixed width */
+        max-height: 80vh;  /* max viewport height */
+        overflow-y: auto;  /* internal scrolling */
+        background-color: #f9f9f9;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        z-index: 1000;
+    }
+
+    /* Adjust main content margin so it doesn't get covered by assistant */
+    main > div > div:first-child {
+        margin-right: 380px; /* at least assistant width + some margin */
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # Initialize OpenAI client
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
@@ -111,7 +139,7 @@ if "team_num" not in st.session_state or "student_name" not in st.session_state:
         st.session_state.team_num = team_num_input
         st.session_state.student_name = student_name_input
         st.success("Information saved. You can proceed.")
-        st.rerun()
+        st.experimental_rerun()
     else:
         st.warning("Please enter both your name and team number to continue.")
     st.stop()
@@ -180,7 +208,7 @@ with center:
                 if st.button("I have collected all parts"):
                     st.session_state.collected_parts_confirmed = True
                     st.session_state.step = 1
-                    st.rerun()
+                    st.experimental_rerun()
 
         elif st.session_state.step == 1:
             if context['subassembly']:
@@ -194,12 +222,12 @@ with center:
                     if st.button("I have completed the subassembly"):
                         st.session_state.subassembly_confirmed = True
                         st.session_state.step = 2
-                        st.rerun()
+                        st.experimental_rerun()
             else:
                 st.write("No subassembly required for this subtask.")
                 st.session_state.subassembly_confirmed = True
                 st.session_state.step = 2
-                st.rerun()
+                st.experimental_rerun()
 
         elif st.session_state.step == 2:
             idx = df.index.get_loc(current_task.name)
@@ -217,12 +245,12 @@ with center:
                     if st.button("I have received the product from the previous team"):
                         st.session_state.previous_step_confirmed = True
                         st.session_state.step = 3
-                        st.rerun()
+                        st.experimental_rerun()
             else:
                 st.write("You are the first team — no prior handover needed.")
                 st.session_state.previous_step_confirmed = True
                 st.session_state.step = 3
-                st.rerun()
+                st.experimental_rerun()
 
         elif st.session_state.step == 3:
             st.subheader("Step 4: Perform the final assembly")
@@ -238,18 +266,18 @@ with center:
                     if page not in st.session_state.finalassembly_confirmed_pages:
                         if st.button(f"Confirm subassembled part is ready for page {page}"):
                             st.session_state.finalassembly_confirmed_pages.add(page)
-                            st.rerun()
+                            st.experimental_rerun()
                 else:
                     show_image(manual_path, f"Final Assembly - Page {page}")
                     if page not in st.session_state.finalassembly_confirmed_pages:
                         if st.button(f"Confirm completed Final Assembly - Page {page}"):
                             st.session_state.finalassembly_confirmed_pages.add(page)
-                            st.rerun()
+                            st.experimental_rerun()
 
             if len(st.session_state.finalassembly_confirmed_pages) == len(final_assembly_pages):
                 st.success("All final assembly pages completed!")
                 st.session_state.step = 4
-                st.rerun()
+                st.experimental_rerun()
 
         elif st.session_state.step == 4:
             idx = df.index.get_loc(current_task.name)
@@ -273,12 +301,13 @@ with center:
                     st.session_state.finalassembly_confirmed_pages = set()
                     st.session_state.previous_step_confirmed = False
                     st.session_state.collected_parts_confirmed = False
-                    st.rerun()
+                    st.experimental_rerun()
                 else:
                     st.info("You have completed all your subtasks.")
 
-# Right-side collapsible ChatGPT assistant
+# Right-side fixed ChatGPT assistant panel
 with right:
+    st.markdown('<div class="chatgpt-assistant">', unsafe_allow_html=True)
     with st.expander("💬 ChatGPT Assistant", expanded=False):
         step_keys = ["q_step0", "q_step1", "q_step2", "q_step3"]
         current_step = st.session_state.get("step", 0)
@@ -290,3 +319,4 @@ with right:
                 show_gpt_response(answer)
         else:
             st.write("No active step for ChatGPT questions.")
+    st.markdown('</div>', unsafe_allow_html=True)
