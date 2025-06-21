@@ -189,7 +189,7 @@ with center:
                     receiver_group = group_num
                     receive_img_path = f"handling-image/receive-t{giver_group}-t{receiver_group}.png"
                     
-                    st.subheader(f"Receive from Group {giver_group}")
+                    st.subheader(f"Receive the semi-finished product from Group {giver_group}")
                     
                     show_image(receive_img_path)
                     
@@ -247,8 +247,9 @@ with center:
                     giver_group = group_num
                     give_img_path = f"handling-image/give-t{giver_group}-t{receiver_group}.png"
                     
-                    st.subheader("Final Step: Handover")
-                    show_image(give_img_path, f"Give to Group {receiver_group}")
+                    st.subheader("Final Step: Handover the semi-finished product to Group {receiver_group}")
+                    
+                    show_image(give_img_path")
                 else:
                     st.subheader("🎉 You are the final group — no further handover needed.")
                 
