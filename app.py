@@ -247,7 +247,7 @@ with center:
                     giver_group = group_num
                     give_img_path = f"handling-image/give-t{giver_group}-t{receiver_group}.png"
                     
-                    st.subheader("Final Step: Handover the semi-finished product to Group {receiver_group}")
+                    st.subheader(f"Final Step: Handover the semi-finished product to Group {receiver_group}")
                     
                     show_image(give_img_path)
                 else:
