@@ -249,7 +249,7 @@ with center:
                     
                     st.subheader("Final Step: Handover the semi-finished product to Group {receiver_group}")
                     
-                    show_image(give_img_path")
+                    show_image(give_img_path)
                 else:
                     st.subheader("🎉 You are the final group — no further handover needed.")
                 
