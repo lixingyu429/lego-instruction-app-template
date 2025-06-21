@@ -258,11 +258,11 @@ with center:
             if page not in st.session_state.finalassembly_confirmed_pages:
                 if page in subassembly_pages:
                     # Overlapping page confirmation button text
-                    if st.button(f"The subassembled part for Page {page} is ready"):
+                    if st.button(f"✅ The subassembled part for Page {page} is ready"):
                         st.session_state.finalassembly_confirmed_pages.add(page)
                         st.rerun()
                 else:
-                    if st.button(f"Confirm completed Final Assembly - Page {page}"):
+                    if st.button(f"✅ Confirm completed Final Assembly - Page {page}"):
                         st.session_state.finalassembly_confirmed_pages.add(page)
                         st.rerun()
 
