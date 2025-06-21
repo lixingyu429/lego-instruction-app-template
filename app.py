@@ -6,7 +6,7 @@ from PIL import Image
 from openai import OpenAI
 import base64
 
-# version 3
+# version 4
 # Initialize OpenAI client
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
@@ -42,7 +42,6 @@ def show_gpt_response(answer):
 def call_chatgpt(user_question, context):
     image_messages = []
 
-    # Subassembly images
     for page in context.get('subassembly', []):
         img_path = f"manuals/page_{page}.png"
         if os.path.exists(img_path):
@@ -52,11 +51,10 @@ def call_chatgpt(user_question, context):
                 "type": "image_url",
                 "image_url": {
                     "url": f"data:image/png;base64,{image_content}",
-                    "detail": "high"  # must be 'low', 'high', or 'auto'
+                    "detail": "high"
                 }
             })
 
-    # Final Assembly images
     for page in context.get('final_assembly', []):
         img_path = f"manuals/page_{page}.png"
         if os.path.exists(img_path):
@@ -66,7 +64,7 @@ def call_chatgpt(user_question, context):
                 "type": "image_url",
                 "image_url": {
                     "url": f"data:image/png;base64,{image_content}",
-                    "detail": "high"  # must be 'low', 'high', or 'auto'
+                    "detail": "high"
                 }
             })
 
@@ -145,6 +143,7 @@ with st.sidebar:
             st.markdown("**Handover:** ✅")
 
 left, center, right = st.columns([1, 2, 1])
+
 with center:
     team_num = st.session_state.team_num
     student_name = st.session_state.student_name
@@ -171,7 +170,6 @@ with center:
             "current_image": None,
         }
 
-        # Step 0: Collect required parts
         if st.session_state.step == 0:
             st.subheader("Step 1: Collect required parts")
             part_img = f"combined_subtasks/{context['subtask_name']}.png"
@@ -183,13 +181,7 @@ with center:
                     st.session_state.collected_parts_confirmed = True
                     st.session_state.step = 1
                     st.rerun()
-            else:
-                user_question = st.text_input("Ask any questions about collecting parts:", key="q_step0")
-                if user_question and user_question.lower() != 'n':
-                    answer = call_chatgpt(user_question, context)
-                    show_gpt_response(answer)
 
-        # Step 1: Perform subassembly
         elif st.session_state.step == 1:
             if context['subassembly']:
                 st.subheader("Step 2: Perform subassembly")
@@ -203,18 +195,12 @@ with center:
                         st.session_state.subassembly_confirmed = True
                         st.session_state.step = 2
                         st.rerun()
-                else:
-                    user_question = st.text_input("Ask a question about subassembly:", key="q_step1")
-                    if user_question and user_question.lower() != 'n':
-                        answer = call_chatgpt(user_question, context)
-                        show_gpt_response(answer)
             else:
                 st.write("No subassembly required for this subtask.")
                 st.session_state.subassembly_confirmed = True
                 st.session_state.step = 2
                 st.rerun()
 
-        # Step 2: Receive semi-finished product from previous team
         elif st.session_state.step == 2:
             idx = df.index.get_loc(current_task.name)
             if idx > 0:
@@ -232,18 +218,12 @@ with center:
                         st.session_state.previous_step_confirmed = True
                         st.session_state.step = 3
                         st.rerun()
-                else:
-                    user_question = st.text_input("Ask a question about receiving the product:", key="q_step2")
-                    if user_question and user_question.lower() != 'n':
-                        answer = call_chatgpt(user_question, context)
-                        show_gpt_response(answer)
             else:
                 st.write("You are the first team — no prior handover needed.")
                 st.session_state.previous_step_confirmed = True
                 st.session_state.step = 3
                 st.rerun()
 
-        # Step 3: Perform final assembly
         elif st.session_state.step == 3:
             st.subheader("Step 4: Perform the final assembly")
             subassembly_pages = set(context['subassembly']) if context['subassembly'] else set()
@@ -271,12 +251,6 @@ with center:
                 st.session_state.step = 4
                 st.rerun()
 
-            user_question = st.text_input("Ask a question about the final assembly:", key="q_step3")
-            if user_question and user_question.lower() != 'n':
-                answer = call_chatgpt(user_question, context)
-                show_gpt_response(answer)
-
-        # Step 4: Final handover step
         elif st.session_state.step == 4:
             idx = df.index.get_loc(current_task.name)
             if idx + 1 < len(df):
@@ -294,7 +268,6 @@ with center:
             if st.button("Next Subtask"):
                 if st.session_state.task_idx + 1 < len(team_tasks):
                     st.session_state.task_idx += 1
-                    # Reset all flags for new subtask
                     st.session_state.step = 0
                     st.session_state.subassembly_confirmed = False
                     st.session_state.finalassembly_confirmed_pages = set()
@@ -303,3 +276,17 @@ with center:
                     st.rerun()
                 else:
                     st.info("You have completed all your subtasks.")
+
+# Right-side collapsible ChatGPT assistant
+with right:
+    with st.expander("💬 ChatGPT Assistant", expanded=False):
+        step_keys = ["q_step0", "q_step1", "q_step2", "q_step3"]
+        current_step = st.session_state.get("step", 0)
+        if current_step in range(len(step_keys)):
+            key = step_keys[current_step]
+            user_question = st.text_input("Ask ChatGPT a question:", key=key)
+            if user_question and user_question.lower() != 'n':
+                answer = call_chatgpt(user_question, context)
+                show_gpt_response(answer)
+        else:
+            st.write("No active step for ChatGPT questions.")
