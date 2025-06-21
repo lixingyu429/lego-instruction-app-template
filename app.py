@@ -79,26 +79,26 @@ Additional info:
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 
 # ==== Student Info Input (only shown initially) ====
-if "group_num" not in st.session_state or "student_name" not in st.session_state:
+if "team_num" not in st.session_state or "student_name" not in st.session_state:
     st.header("Welcome to the Assembly Task")
-    st.session_state.group_num = st.number_input("Enter your student group number:", min_value=1, step=1)
+    st.session_state.team_num = st.number_input("Enter your student team number:", min_value=1, step=1)
     st.session_state.student_name = st.text_input("Enter your name:")
-    if st.session_state.student_name and st.session_state.group_num:
+    if st.session_state.student_name and st.session_state.team_num:
         st.success("Information saved. You can proceed.")
         st.stop()
     else:
-        st.warning("Please enter both your name and group number to continue.")
+        st.warning("Please enter both your name and team number to continue.")
         st.stop()
 
 # ==== Sidebar Tracker ====
 with st.sidebar:
     st.header("Progress Tracker")
     st.markdown(f"**Student:** {st.session_state.student_name}")
-    st.markdown(f"**Group:** {st.session_state.group_num}")
+    st.markdown(f"**Team:** {st.session_state.team_num}")
 
-    group_tasks_preview = df[df['Student Group'] == st.session_state.group_num]
-    if 'task_idx' in st.session_state and not group_tasks_preview.empty:
-        current_task_preview = group_tasks_preview.iloc[st.session_state.task_idx]
+    team_tasks_preview = df[df['Student Team'] == st.session_state.team_num]
+    if 'task_idx' in st.session_state and not team_tasks_preview.empty:
+        current_task_preview = team_tasks_preview.iloc[st.session_state.task_idx]
         st.markdown(f"""
         **Subtask:** {current_task_preview['Subtask Name']}  
         **Bag:** {current_task_preview['Bag']}  
@@ -120,12 +120,12 @@ with st.sidebar:
 # ==== Main Logic ====
 left, center, right = st.columns([1, 2, 1])
 with center:
-    group_num = st.session_state.group_num
+    team_num = st.session_state.team_num
     student_name = st.session_state.student_name
-    group_tasks = df[df['Student Group'] == group_num]
+    team_tasks = df[df['Student Team'] == team_num]
 
-    if group_tasks.empty:
-        st.error(f"No subtasks found for Group {group_num}.")
+    if team_tasks.empty:
+        st.error(f"No subtasks found for Team {team_num}.")
     else:
         if 'task_idx' not in st.session_state:
             st.session_state.task_idx = 0
@@ -135,7 +135,7 @@ with center:
             st.session_state.previous_step_confirmed = False
             st.session_state.collected_parts_confirmed = False
 
-        current_task = group_tasks.iloc[st.session_state.task_idx]
+        current_task = team_tasks.iloc[st.session_state.task_idx]
         context = {
             "subtask_name": current_task["Subtask Name"],
             "subassembly": current_task["Subassembly"],
@@ -185,14 +185,14 @@ with center:
             if idx > 0:
                 prev_row = df.iloc[idx - 1]
                 context['previous_step'] = prev_row['Subtask Name']
-                giver_group = prev_row['Student Group']
-                receiver_group = group_num
-                receive_img_path = f"handling-image/receive-t{giver_group}-t{receiver_group}.png"
+                giver_team = prev_row['Student Team']
+                receiver_team = team_num
+                receive_img_path = f"handling-image/receive-t{giver_team}-t{receiver_team}.png"
 
-                st.subheader(f"Receive the semi-finished product from Group {giver_group}")
+                st.subheader(f"Receive the semi-finished product from Team {giver_team}")
                 show_image(receive_img_path)
 
-                if st.button("I have received the product from the previous group"):
+                if st.button("I have received the product from the previous team"):
                     st.session_state.previous_step_confirmed = True
                     st.session_state.step = 3
                     st.rerun()
@@ -202,7 +202,7 @@ with center:
                     answer = call_chatgpt(user_question, context)
                     show_gpt_response(answer)
             else:
-                st.write("You are the first group — no prior handover needed.")
+                st.write("You are the first team — no prior handover needed.")
                 st.session_state.previous_step_confirmed = True
                 st.session_state.step = 3
                 st.rerun()
@@ -240,16 +240,16 @@ with center:
             idx = df.index.get_loc(current_task.name)
             if idx + 1 < len(df):
                 next_row = df.iloc[idx + 1]
-                receiver_group = next_row['Student Group']
-                giver_group = group_num
-                give_img_path = f"handling-image/give-t{giver_group}-t{receiver_group}.png"
-                st.subheader(f"Final Step: Handover the semi-finished product to Group {receiver_group}")
+                receiver_team = next_row['Student Team']
+                giver_team = team_num
+                give_img_path = f"handling-image/give-t{giver_team}-t{receiver_team}.png"
+                st.subheader(f"Final Step: Handover the semi-finished product to Team {receiver_team}")
                 show_image(give_img_path)
             else:
-                st.subheader("🎉 You are the final group — no further handover needed.")
+                st.subheader("🎉 You are the final team — no further handover needed.")
             st.success("✅ Subtask complete. Great work!")
             if st.button("Next Subtask"):
-                if st.session_state.task_idx + 1 < len(group_tasks):
+                if st.session_state.task_idx + 1 < len(team_tasks):
                     st.session_state.task_idx += 1
                     st.session_state.step = 0
                     st.session_state.subassembly_confirmed = False
