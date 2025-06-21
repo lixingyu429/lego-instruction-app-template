@@ -7,8 +7,6 @@ from openai import OpenAI
 import base64
 import hashlib
 
-# version 9
-
 # Page config
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 
@@ -98,7 +96,7 @@ Additional info:
     )
     return response.choices[0].message.content.strip()
 
-# === Updated Initial Input Page ===
+# === User Info Input Page ===
 if ("group_name" not in st.session_state or
     "student_name" not in st.session_state or
     "team_number" not in st.session_state):
@@ -120,7 +118,7 @@ if ("group_name" not in st.session_state or
             st.warning("Please enter your name before submitting.")
     st.stop()
 
-# Sidebar: Progress Tracker + Assistant
+# === Sidebar Info ===
 with st.sidebar:
     st.header("Progress Tracker")
     st.markdown(f"**Student:** {st.session_state.student_name}")
