@@ -6,6 +6,7 @@ from PIL import Image
 from openai import OpenAI
 import base64
 
+# version 3
 # Initialize OpenAI client
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
