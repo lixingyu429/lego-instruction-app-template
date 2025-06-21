@@ -194,7 +194,10 @@ with center:
     # Visual progress bar
     total_steps = 5
     current_progress = min(step / (total_steps - 1), 1.0)
-    st.progress(current_progress, text=f"Step {step+1} of {total_steps}")
+    
+    subtask_id = current_task.get("Subtask ID", current_task["Subtask Name"])
+    st.markdown(f"### 🧱 Subtask: {subtask_id}")
+    st.progress(current_progress, text=f"Step {step + 1} of {total_steps}")
 
     if step == 0:
         st.subheader("Step 1: Collect required parts")
