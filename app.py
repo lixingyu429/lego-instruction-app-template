@@ -159,7 +159,7 @@ with st.container():
         label="",
         key="chatgpt_input_internal",
         placeholder="Ask a question about your current step...",
-        height=60,
+        height=100,
     )
 
     ask_button_disabled = (not user_question.strip())
