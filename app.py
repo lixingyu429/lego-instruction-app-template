@@ -7,7 +7,7 @@ from openai import OpenAI
 import base64
 import hashlib
 
-# version 7 with added group number, student name, and team name inputs on first page
+# version 8
 
 # Page config
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
@@ -105,9 +105,9 @@ if ("group_number" not in st.session_state or
     "team_name" not in st.session_state):
     
     st.header("Welcome to the Assembly Task")
-    group_number_input = st.number_input("Enter your Group Number:", min_value=1, step=1, key="group_number_input")
+    group_number_input = st.number_input("Enter your Team Number:", min_value=1, step=1, key="group_number_input")
     student_name_input = st.text_input("Enter your Name:", key="student_name_input")
-    team_name_input = st.text_input("Enter your Team Name:", key="team_name_input")
+    team_name_input = st.text_input("Enter your Group Name:", key="team_name_input")
 
     if st.button("Submit"):
         if group_number_input and student_name_input.strip() and team_name_input.strip():
