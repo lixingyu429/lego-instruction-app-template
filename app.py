@@ -239,7 +239,7 @@ with center:
             prev_row = df.iloc[idx - 1]
             context['previous_step'] = prev_row['Subtask Name']
             giver_team = prev_row['Student Team']
-            receiver_team = st.session_state.group_number
+            receiver_team = st.session_state.team_number
             st.subheader(f"Step 3: Receive from Team {giver_team}")
             show_image(f"handling-image/receive-t{giver_team}-t{receiver_team}.png")
             if not st.session_state.previous_step_confirmed:
@@ -282,7 +282,7 @@ with center:
         if idx + 1 < len(df):
             next_row = df.iloc[idx + 1]
             st.subheader(f"Step 5: Handover to Team {next_row['Student Team']}")
-            show_image(f"handling-image/give-t{st.session_state.group_number}-t{next_row['Student Team']}.png")
+            show_image(f"handling-image/give-t{st.session_state.team_number}-t{next_row['Student Team']}.png")
         else:
             st.subheader("🎉 You are the final team — no further handover needed.")
         st.success("✅ Subtask complete. Great work!")
