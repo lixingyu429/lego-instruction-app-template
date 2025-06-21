@@ -299,7 +299,7 @@ with center:
                     st.session_state.subassembly_confirmed = False
                     st.session_state.finalassembly_confirmed_pages = set()
                     st.session_state.previous_step_confirmed = False
-                    st.session_state.collected_parts_confirmed = FalseMore actions
+                    st.session_state.collected_parts_confirmed = False
                     st.rerun()
                 else:
                     st.info("You have completed all your subtasks.")
