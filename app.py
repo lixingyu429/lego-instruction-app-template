@@ -173,12 +173,17 @@ with st.sidebar:
             if user_question and user_question.lower() != 'n':
                 task_idx = st.session_state.get('task_idx', 0)
                 current_task = df[df['Student Team'] == st.session_state.team_number].iloc[task_idx]
+                idx = df.index.get_loc(current_task.name)
+                prev_row = df.iloc[idx - 1] if idx > 0 else None
+            
                 context = {
                     "subtask_name": current_task["Subtask Name"],
                     "subassembly": current_task["Subassembly"],
                     "final_assembly": current_task["Final Assembly"],
                     "bag": current_task["Bag"],
-                    "previous_step": None,
+                    "previous_step": prev_row["Subtask Name"] if prev_row is not None else None,
+                    "team_number": st.session_state.team_number,
+                    "task_sequence_text": format_task_sequence(df),  # <-- Make sure this is here
                 }
                 q_hash = get_question_hash(user_question, context)
                 if q_hash not in st.session_state:
