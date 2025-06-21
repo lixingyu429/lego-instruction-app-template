@@ -39,7 +39,7 @@ def show_image(image_path, caption=""):
 def show_gpt_response(answer):
     st.markdown(f"""
     <div style='text-align: left; padding: 10px; background-color: #e8f0fe; border-left: 5px solid #4285f4; border-radius: 8px; margin-bottom: 1em;'>
-        🧠 <strong>ChatGPT says:</strong><br>{answer}
+        🧠 <strong>AGEMT says:</strong><br>{answer}
     </div>
     """, unsafe_allow_html=True)
 
@@ -145,7 +145,7 @@ with st.sidebar:
         if st.session_state.get('step', 0) == 4:
             st.markdown("**Handover:** ✅")
 
-    with st.expander("💬 ChatGPT Assistant", expanded=False):
+    with st.expander("💬 AGEMT", expanded=False):
         st.markdown("Ask a question about your current step.")
         step_keys = ["q_step0", "q_step1", "q_step2", "q_step3", "q_step4"]
         current_step = st.session_state.get("step", 0)
