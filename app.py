@@ -127,7 +127,7 @@ with st.sidebar:
     st.markdown(f"**Group Name:** {st.session_state.group_name}")
     st.markdown(f"**Team Number:** {st.session_state.team_number}")
 
-    team_tasks_preview = df[df['Student Team'] == st.session_state.group_number]
+    team_tasks_preview = df[df['Student Team'] == st.session_state.team_number]
     if 'task_idx' in st.session_state and not team_tasks_preview.empty:
         current_task_preview = team_tasks_preview.iloc[st.session_state.task_idx]
         st.markdown(f"""
