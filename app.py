@@ -6,27 +6,8 @@ from PIL import Image
 from openai import OpenAI
 import base64
 
-# Set page config and inject floating assistant CSS
+# Page config
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
-
-st.markdown("""
-    <style>
-    /* Floating effect for the third column (right) */
-    div[data-testid="column"]:nth-of-type(3) > div {
-        position: fixed;
-        top: 100px;
-        right: 30px;
-        width: 320px;
-        z-index: 9999;
-        background-color: #f9f9f9;
-        padding: 1rem;
-        border-radius: 12px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        max-height: 80vh;
-        overflow-y: auto;
-    }
-    </style>
-""", unsafe_allow_html=True)
 
 # Initialize OpenAI client
 api_key = os.getenv("OPENAI_API_KEY")
@@ -121,7 +102,7 @@ Additional info:
     )
     return response.choices[0].message.content.strip()
 
-# First page: Enter team number and student name
+# Initial input page
 if "team_num" not in st.session_state or "student_name" not in st.session_state:
     st.header("Welcome to the Assembly Task")
     team_num_input = st.number_input("Enter your student team number:", min_value=1, step=1)
@@ -135,6 +116,7 @@ if "team_num" not in st.session_state or "student_name" not in st.session_state:
         st.warning("Please enter both your name and team number to continue.")
     st.stop()
 
+# Sidebar: Progress Tracker
 with st.sidebar:
     st.header("Progress Tracker")
     st.markdown(f"**Student:** {st.session_state.student_name}")
@@ -161,8 +143,10 @@ with st.sidebar:
         if st.session_state.get('step', 0) == 4:
             st.markdown("**Handover:** ✅")
 
+# Main layout
 left, center, right = st.columns([1, 2, 1])
 
+# Center column: Main assembly flow
 with center:
     team_num = st.session_state.team_num
     student_name = st.session_state.student_name
@@ -296,17 +280,19 @@ with center:
                 else:
                     st.info("You have completed all your subtasks.")
 
-# ✅ Right floating ChatGPT Assistant
+# Right column: collapsible ChatGPT assistant
 with right:
-    st.markdown("### 💬 ChatGPT Assistant")
-    step_keys = ["q_step0", "q_step1", "q_step2", "q_step3"]
-    current_step = st.session_state.get("step", 0)
+    with st.expander("💬 ChatGPT Assistant", expanded=False):
+        st.markdown("Ask questions about your current step.")
 
-    if current_step in range(len(step_keys)):
-        key = step_keys[current_step]
-        user_question = st.text_input("Ask ChatGPT a question:", key=key)
-        if user_question and user_question.lower() != 'n':
-            answer = call_chatgpt(user_question, context)
-            show_gpt_response(answer)
-    else:
-        st.write("No active step for ChatGPT questions.")
+        step_keys = ["q_step0", "q_step1", "q_step2", "q_step3", "q_step4"]
+        current_step = st.session_state.get("step", 0)
+
+        if current_step in range(len(step_keys)):
+            key = step_keys[current_step]
+            user_question = st.text_input("Your question to ChatGPT:", key=key)
+            if user_question and user_question.lower() != 'n':
+                answer = call_chatgpt(user_question, context)
+                show_gpt_response(answer)
+        else:
+            st.info("No active step to ask about.")
