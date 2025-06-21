@@ -156,7 +156,7 @@ with st.sidebar:
             user_question = st.text_input("Your question to AGEMT:", key=key)
             if user_question and user_question.lower() != 'n':
                 task_idx = st.session_state.get('task_idx', 0)
-                current_task = df[df['Student Team'] == st.session_state.group_number].iloc[task_idx]
+                current_task = df[df['Student Team'] == st.session_state.team_number].iloc[task_idx]
                 context = {
                     "subtask_name": current_task["Subtask Name"],
                     "subassembly": current_task["Subassembly"],
@@ -175,9 +175,9 @@ with st.sidebar:
 # Main layout
 left, center, _ = st.columns([1, 2, 1])
 with center:
-    team_tasks = df[df['Student Team'] == st.session_state.group_number]
+    team_tasks = df[df['Student Team'] == st.session_state.team_number]
     if team_tasks.empty:
-        st.error(f"No subtasks found for Team {st.session_state.group_number}.")
+        st.error(f"No subtasks found for Team {st.session_state.team_number}.")
         st.stop()
 
     if 'task_idx' not in st.session_state:
