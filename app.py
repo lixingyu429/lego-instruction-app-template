@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit as stMore actions
 import pandas as pd
 import os
 import ast
@@ -6,24 +6,24 @@ from PIL import Image
 from openai import OpenAI
 import base64
 
-# --- OpenAI Setup ---
+# version 3
+# Initialize OpenAI client
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
     st.error("Please set your OPENAI_API_KEY environment variable!")
     st.stop()
+
 client = OpenAI(api_key=api_key)
 
-# --- Load Data ---
+# Load DataFrame
 CSV_FILE = "lego_subtasks.csv"
 if not os.path.exists(CSV_FILE):
-    st.error(f"CSV file '{CSV_FILE}' not found.")
+    st.error(f"CSV file '{CSV_FILE}' not found in the app directory.")
     st.stop()
 
 df = pd.read_csv(CSV_FILE)
 df['Subassembly'] = df['Subassembly'].apply(lambda x: ast.literal_eval(x) if pd.notna(x) else [])
 df['Final Assembly'] = df['Final Assembly'].apply(lambda x: ast.literal_eval(x) if pd.notna(x) else [])
-
-# --- Helper Functions ---
 
 def show_image(image_path, caption=""):
     if os.path.exists(image_path):
@@ -32,25 +32,42 @@ def show_image(image_path, caption=""):
     else:
         st.warning(f"Image not found: {image_path}")
 
+def show_gpt_response(answer):
+    st.markdown(f"""
+    <div style='text-align: left; padding: 10px; background-color: #e8f0fe; border-left: 5px solid #4285f4; border-radius: 8px; margin-bottom: 1em;'>
+        🧠 <strong>ChatGPT says:</strong><br>{answer}
+    </div>
+    """, unsafe_allow_html=True)
+
 def call_chatgpt(user_question, context):
     image_messages = []
+
+    # Subassembly images
     for page in context.get('subassembly', []):
-        path = f"manuals/page_{page}.png"
-        if os.path.exists(path):
-            with open(path, "rb") as f:
-                img_b64 = base64.b64encode(f.read()).decode()
+        img_path = f"manuals/page_{page}.png"
+        if os.path.exists(img_path):
+            with open(img_path, "rb") as img_file:
+                image_content = base64.b64encode(img_file.read()).decode()
             image_messages.append({
                 "type": "image_url",
-                "image_url": {"url": f"data:image/png;base64,{img_b64}", "detail": "high"}
+                "image_url": {
+                    "url": f"data:image/png;base64,{image_content}",
+                    "detail": "high"  # must be 'low', 'high', or 'auto'
+                }
             })
+
+    # Final Assembly images
     for page in context.get('final_assembly', []):
-        path = f"manuals/page_{page}.png"
-        if os.path.exists(path):
-            with open(path, "rb") as f:
-                img_b64 = base64.b64encode(f.read()).decode()
+        img_path = f"manuals/page_{page}.png"
+        if os.path.exists(img_path):
+            with open(img_path, "rb") as img_file:
+                image_content = base64.b64encode(img_file.read()).decode()
             image_messages.append({
                 "type": "image_url",
-                "image_url": {"url": f"data:image/png;base64,{img_b64}", "detail": "high"}
+                "image_url": {
+                    "url": f"data:image/png;base64,{image_content}",
+                    "detail": "high"  # must be 'low', 'high', or 'auto'
+                }
             })
 
     messages = [
@@ -85,10 +102,9 @@ Additional info:
     )
     return response.choices[0].message.content.strip()
 
-# --- UI Setup ---
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 
-# Initialize session state for team info and chat messages
+# First page: Enter team number and student name
 if "team_num" not in st.session_state or "student_name" not in st.session_state:
     st.header("Welcome to the Assembly Task")
     team_num_input = st.number_input("Enter your student team number:", min_value=1, step=1)
@@ -97,222 +113,193 @@ if "team_num" not in st.session_state or "student_name" not in st.session_state:
         st.session_state.team_num = team_num_input
         st.session_state.student_name = student_name_input
         st.success("Information saved. You can proceed.")
-        st.experimental_rerun()
+        st.rerun()
     else:
         st.warning("Please enter both your name and team number to continue.")
     st.stop()
 
-if "chat_messages" not in st.session_state:
-    st.session_state.chat_messages = []
-
-if 'task_idx' not in st.session_state:
-    st.session_state.task_idx = 0
-    st.session_state.step = 0
-    st.session_state.subassembly_confirmed = False
-    st.session_state.finalassembly_confirmed_pages = set()
-    st.session_state.previous_step_confirmed = False
-    st.session_state.collected_parts_confirmed = False
-
-team_num = st.session_state.team_num
-student_name = st.session_state.student_name
-team_tasks = df[df['Student Team'] == team_num]
-
-if team_tasks.empty:
-    st.error(f"No subtasks found for Team {team_num}.")
-    st.stop()
-
-current_task = team_tasks.iloc[st.session_state.task_idx]
-context = {
-    "subtask_name": current_task["Subtask Name"],
-    "subassembly": current_task["Subassembly"],
-    "final_assembly": current_task["Final Assembly"],
-    "bag": current_task["Bag"],
-    "previous_step": None,
-    "current_image": None,
-}
-
-# Main UI Columns for progress tracker and content
-left_col, center_col, right_col = st.columns([1, 3, 1])
-
-with left_col:
+with st.sidebar:
     st.header("Progress Tracker")
-    st.markdown(f"**Student:** {student_name}")
-    st.markdown(f"**Team:** {team_num}")
+    st.markdown(f"**Student:** {st.session_state.student_name}")
+    st.markdown(f"**Team:** {st.session_state.team_num}")
 
-    st.markdown(f"**Subtask:** {current_task['Subtask Name']}")
-    st.markdown(f"**Bag:** {current_task['Bag']}")
-    st.markdown(f"**Collect Parts:** {'✅' if st.session_state.collected_parts_confirmed else '❌'}")
+    team_tasks_preview = df[df['Student Team'] == st.session_state.team_num]
+    if 'task_idx' in st.session_state and not team_tasks_preview.empty:
+        current_task_preview = team_tasks_preview.iloc[st.session_state.task_idx]
+        st.markdown(f"""
+        **Subtask:** {current_task_preview['Subtask Name']}  
+        **Bag:** {current_task_preview['Bag']}  
+        **Collect Parts:** {'✅' if st.session_state.get('collected_parts_confirmed', False) else '❌'}
+        """)
+        if current_task_preview['Subassembly']:
+            st.markdown("**Subassembly:**")
+            for page in current_task_preview['Subassembly']:
+                completed = st.session_state.get('subassembly_confirmed', False)
+                st.markdown(f"- Page {page}: {'✅' if completed else '❌'}")
+        if current_task_preview['Final Assembly']:
+            st.markdown("**Final Assembly:**")
+            for page in current_task_preview['Final Assembly']:
+                done = page in st.session_state.get('finalassembly_confirmed_pages', set())
+                st.markdown(f"- Page {page}: {'✅' if done else '❌'}")
+        if st.session_state.get('step', 0) == 4:
+            st.markdown("**Handover:** ✅")
 
-    if current_task['Subassembly']:
-        st.markdown("**Subassembly:**")
-        for page in current_task['Subassembly']:
-            completed = st.session_state.subassembly_confirmed
-            st.markdown(f"- Page {page}: {'✅' if completed else '❌'}")
+left, center, right = st.columns([1, 2, 1])
+with center:
+    team_num = st.session_state.team_num
+    student_name = st.session_state.student_name
+    team_tasks = df[df['Student Team'] == team_num]
 
-    if current_task['Final Assembly']:
-        st.markdown("**Final Assembly:**")
-        for page in current_task['Final Assembly']:
-            done = page in st.session_state.finalassembly_confirmed_pages
-            st.markdown(f"- Page {page}: {'✅' if done else '❌'}")
+    if team_tasks.empty:
+        st.error(f"No subtasks found for Team {team_num}.")
+    else:
+        if 'task_idx' not in st.session_state:
+            st.session_state.task_idx = 0
+            st.session_state.step = 0
+            st.session_state.subassembly_confirmed = False
+            st.session_state.finalassembly_confirmed_pages = set()
+            st.session_state.previous_step_confirmed = False
+            st.session_state.collected_parts_confirmed = False
 
-    if st.session_state.step == 4:
-        st.markdown("**Handover:** ✅")
+        current_task = team_tasks.iloc[st.session_state.task_idx]
+        context = {
+            "subtask_name": current_task["Subtask Name"],
+            "subassembly": current_task["Subassembly"],
+            "final_assembly": current_task["Final Assembly"],
+            "bag": current_task["Bag"],
+            "previous_step": None,
+            "current_image": None,
+        }
 
-with center_col:
-    # Steps UI (same as before)
+        # Step 0: Collect required parts
+        if st.session_state.step == 0:
+            st.subheader("Step 1: Collect required parts")
+            part_img = f"combined_subtasks/{context['subtask_name']}.png"
+            context['current_image'] = part_img
+            show_image(part_img, "Parts Required")
 
-    if st.session_state.step == 0:
-        st.subheader("Step 1: Collect required parts")
-        part_img = f"combined_subtasks/{context['subtask_name']}.png"
-        context['current_image'] = part_img
-        show_image(part_img, "Parts Required")
-        if not st.session_state.collected_parts_confirmed:
-            if st.button("I have collected all parts"):
-                st.session_state.collected_parts_confirmed = True
-                st.session_state.step = 1
-                st.experimental_rerun()
-        else:
-            st.info("Use the ChatGPT panel below to ask questions.")
+            if not st.session_state.get('collected_parts_confirmed', False):
+                if st.button("I have collected all parts"):
+                    st.session_state.collected_parts_confirmed = True
+                    st.session_state.step = 1
+                    st.rerun()
+            else:
+                user_question = st.text_input("Ask any questions about collecting parts:", key="q_step0")
+                if user_question and user_question.lower() != 'n':
+                    answer = call_chatgpt(user_question, context)
+                    show_gpt_response(answer)
 
-    elif st.session_state.step == 1:
-        if context['subassembly']:
-            st.subheader("Step 2: Perform subassembly")
-            for page in context['subassembly']:
+        # Step 1: Perform subassembly
+        elif st.session_state.step == 1:
+            if context['subassembly']:
+                st.subheader("Step 2: Perform subassembly")
+                for page in context['subassembly']:
+                    manual_path = f"manuals/page_{page}.png"
+                    context['current_image'] = manual_path
+                    show_image(manual_path, f"Subassembly - Page {page}")
+
+                if not st.session_state.get('subassembly_confirmed', False):
+                    if st.button("I have completed the subassembly"):
+                        st.session_state.subassembly_confirmed = True
+                        st.session_state.step = 2
+                        st.rerun()
+                else:
+                    user_question = st.text_input("Ask a question about subassembly:", key="q_step1")
+                    if user_question and user_question.lower() != 'n':
+                        answer = call_chatgpt(user_question, context)
+                        show_gpt_response(answer)
+            else:
+                st.write("No subassembly required for this subtask.")
+                st.session_state.subassembly_confirmed = True
+                st.session_state.step = 2
+                st.rerun()
+
+        # Step 2: Receive semi-finished product from previous team
+        elif st.session_state.step == 2:
+            idx = df.index.get_loc(current_task.name)
+            if idx > 0:
+                prev_row = df.iloc[idx - 1]
+                context['previous_step'] = prev_row['Subtask Name']
+                giver_team = prev_row['Student Team']
+                receiver_team = team_num
+                receive_img_path = f"handling-image/receive-t{giver_team}-t{receiver_team}.png"
+
+                st.subheader(f"Receive the semi-finished product from Team {giver_team}")
+                show_image(receive_img_path)
+
+                if not st.session_state.get('previous_step_confirmed', False):
+                    if st.button("I have received the product from the previous team"):
+                        st.session_state.previous_step_confirmed = True
+                        st.session_state.step = 3
+                        st.rerun()
+                else:
+                    user_question = st.text_input("Ask a question about receiving the product:", key="q_step2")
+                    if user_question and user_question.lower() != 'n':
+                        answer = call_chatgpt(user_question, context)
+                        show_gpt_response(answer)
+            else:
+                st.write("You are the first team — no prior handover needed.")
+                st.session_state.previous_step_confirmed = True
+                st.session_state.step = 3
+                st.rerun()
+
+        # Step 3: Perform final assembly
+        elif st.session_state.step == 3:
+            st.subheader("Step 4: Perform the final assembly")
+            subassembly_pages = set(context['subassembly']) if context['subassembly'] else set()
+            final_assembly_pages = context['final_assembly']
+
+            for page in final_assembly_pages:
                 manual_path = f"manuals/page_{page}.png"
                 context['current_image'] = manual_path
-                show_image(manual_path, f"Subassembly - Page {page}")
+                if page in subassembly_pages:
+                    st.markdown(f"### ⚠️ Final Assembly - Page {page} (Already part of subassembly)")
+                    show_image(manual_path, f"Page {page} Details")
+                    if page not in st.session_state.finalassembly_confirmed_pages:
+                        if st.button(f"Confirm subassembled part is ready for page {page}"):
+                            st.session_state.finalassembly_confirmed_pages.add(page)
+                            st.rerun()
+                else:
+                    show_image(manual_path, f"Final Assembly - Page {page}")
+                    if page not in st.session_state.finalassembly_confirmed_pages:
+                        if st.button(f"Confirm completed Final Assembly - Page {page}"):
+                            st.session_state.finalassembly_confirmed_pages.add(page)
+                            st.rerun()
 
-            if not st.session_state.subassembly_confirmed:
-                if st.button("I have completed the subassembly"):
-                    st.session_state.subassembly_confirmed = True
-                    st.session_state.step = 2
-                    st.experimental_rerun()
+            if len(st.session_state.finalassembly_confirmed_pages) == len(final_assembly_pages):
+                st.success("All final assembly pages completed!")
+                st.session_state.step = 4
+                st.rerun()
+
+            user_question = st.text_input("Ask a question about the final assembly:", key="q_step3")
+            if user_question and user_question.lower() != 'n':
+                answer = call_chatgpt(user_question, context)
+                show_gpt_response(answer)
+
+        # Step 4: Final handover step
+        elif st.session_state.step == 4:
+            idx = df.index.get_loc(current_task.name)
+            if idx + 1 < len(df):
+                next_row = df.iloc[idx + 1]
+                receiver_team = next_row['Student Team']
+                giver_team = team_num
+                give_img_path = f"handling-image/give-t{giver_team}-t{receiver_team}.png"
+
+                st.subheader(f"Final Step: Handover the semi-finished product to Team {receiver_team}")
+                show_image(give_img_path)
             else:
-                st.info("Use the ChatGPT panel below to ask questions.")
-        else:
-            st.write("No subassembly required for this subtask.")
-            st.session_state.subassembly_confirmed = True
-            st.session_state.step = 2
-            st.experimental_rerun()
+                st.subheader("🎉 You are the final team — no further handover needed.")
 
-    elif st.session_state.step == 2:
-        idx = df.index.get_loc(current_task.name)
-        if idx > 0:
-            prev_row = df.iloc[idx - 1]
-            context['previous_step'] = prev_row['Subtask Name']
-            giver_team = prev_row['Student Team']
-            receiver_team = team_num
-            receive_img_path = f"handling-image/receive-t{giver_team}-t{receiver_team}.png"
-
-            st.subheader(f"Receive the semi-finished product from Team {giver_team}")
-            show_image(receive_img_path)
-
-            if not st.session_state.previous_step_confirmed:
-                if st.button("I have received the product from the previous team"):
-                    st.session_state.previous_step_confirmed = True
-                    st.session_state.step = 3
-                    st.experimental_rerun()
-            else:
-                st.info("Use the ChatGPT panel below to ask questions.")
-        else:
-            st.write("You are the first team — no prior handover needed.")
-            st.session_state.previous_step_confirmed = True
-            st.session_state.step = 3
-            st.experimental_rerun()
-
-    elif st.session_state.step == 3:
-        st.subheader("Step 4: Perform the final assembly")
-        subassembly_pages = set(context['subassembly']) if context['subassembly'] else set()
-        final_assembly_pages = context['final_assembly']
-
-        for page in final_assembly_pages:
-            manual_path = f"manuals/page_{page}.png"
-            context['current_image'] = manual_path
-            if page in subassembly_pages:
-                st.markdown(f"### ⚠️ Final Assembly - Page {page} (Already part of subassembly)")
-                show_image(manual_path, f"Page {page} Details")
-                if page not in st.session_state.finalassembly_confirmed_pages:
-                    if st.button(f"Confirm subassembled part is ready for page {page}"):
-                        st.session_state.finalassembly_confirmed_pages.add(page)
-                        st.experimental_rerun()
-            else:
-                show_image(manual_path, f"Final Assembly - Page {page}")
-                if page not in st.session_state.finalassembly_confirmed_pages:
-                    if st.button(f"Confirm completed Final Assembly - Page {page}"):
-                        st.session_state.finalassembly_confirmed_pages.add(page)
-                        st.experimental_rerun()
-
-        if len(st.session_state.finalassembly_confirmed_pages) == len(final_assembly_pages):
-            st.success("All final assembly pages completed!")
-            st.session_state.step = 4
-            st.experimental_rerun()
-
-        st.info("Use the ChatGPT panel below to ask questions.")
-
-    elif st.session_state.step == 4:
-        idx = df.index.get_loc(current_task.name)
-        if idx + 1 < len(df):
-            next_row = df.iloc[idx + 1]
-            receiver_team = next_row['Student Team']
-            giver_team = team_num
-            give_img_path = f"handling-image/give-t{giver_team}-t{receiver_team}.png"
-
-            st.subheader(f"Final Step: Handover the semi-finished product to Team {receiver_team}")
-            show_image(give_img_path)
-        else:
-            st.subheader("🎉 You are the final team — no further handover needed.")
-
-        st.success("✅ Subtask complete. Great work!")
-        if st.button("Next Subtask"):
-            if st.session_state.task_idx + 1 < len(team_tasks):
-                st.session_state.task_idx += 1
-                st.session_state.step = 0
-                st.session_state.subassembly_confirmed = False
-                st.session_state.finalassembly_confirmed_pages = set()
-                st.session_state.previous_step_confirmed = False
-                st.session_state.collected_parts_confirmed = False
-                st.experimental_rerun()
-            else:
-                st.info("You have completed all your subtasks.")
-
-# --- Bottom Chat Panel ---
-with st.container():
-    st.markdown("---")
-    st.subheader("ChatGPT Assistant")
-
-    chat_box_style = """
-    <style>
-    .chat-box {
-        height: 250px;
-        overflow-y: auto;
-        padding: 10px;
-        border: 1px solid #ddd;
-        background-color: #f9f9f9;
-        border-radius: 5px;
-        font-size: 14px;
-        line-height: 1.4;
-        white-space: pre-wrap;
-    }
-    </style>
-    """
-    st.markdown(chat_box_style, unsafe_allow_html=True)
-
-    # Display chat messages with scroll box
-    chat_html = ""
-    for msg in st.session_state.chat_messages:
-        if msg["role"] == "user":
-            chat_html += f"<div style='color: blue; margin-bottom:8px;'><b>You:</b> {msg['content']}</div>"
-        else:
-            chat_html += f"<div style='color: green; margin-bottom:8px;'><b>ChatGPT:</b> {msg['content']}</div>"
-
-    st.markdown(f"<div class='chat-box'>{chat_html}</div>", unsafe_allow_html=True)
-
-    # Chat input form
-    with st.form(key="chat_form", clear_on_submit=True):
-        user_input = st.text_input("Ask a question about the current step:", key="chat_input_box")
-        submitted = st.form_submit_button("Send")
-        if submitted and user_input.strip():
-            st.session_state.chat_messages.append({"role": "user", "content": user_input.strip()})
-            answer = call_chatgpt(user_input.strip(), context)
-            st.session_state.chat_messages.append({"role": "assistant", "content": answer})
-            st.experimental_rerun()
+            st.success("✅ Subtask complete. Great work!")
+            if st.button("Next Subtask"):
+                if st.session_state.task_idx + 1 < len(team_tasks):
+                    st.session_state.task_idx += 1
+                    # Reset all flags for new subtask
+                    st.session_state.step = 0
+                    st.session_state.subassembly_confirmed = False
+                    st.session_state.finalassembly_confirmed_pages = set()
+                    st.session_state.previous_step_confirmed = False
+                    st.session_state.collected_parts_confirmed = FalseMore actions
+                    st.rerun()
+                else:
+                    st.info("You have completed all your subtasks.")
