@@ -6,7 +6,27 @@ from PIL import Image
 from openai import OpenAI
 import base64
 
-# version 4
+# Set page config and inject floating assistant CSS
+st.set_page_config(layout="wide", initial_sidebar_state="expanded")
+
+st.markdown("""
+    <style>
+    .floating-assistant {
+        position: fixed;
+        top: 100px;
+        right: 30px;
+        width: 300px;
+        z-index: 9999;
+        background-color: #f9f9f9;
+        padding: 1rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # Initialize OpenAI client
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
@@ -100,8 +120,6 @@ Additional info:
     )
     return response.choices[0].message.content.strip()
 
-st.set_page_config(layout="wide", initial_sidebar_state="expanded")
-
 # First page: Enter team number and student name
 if "team_num" not in st.session_state or "student_name" not in st.session_state:
     st.header("Welcome to the Assembly Task")
@@ -142,7 +160,7 @@ with st.sidebar:
         if st.session_state.get('step', 0) == 4:
             st.markdown("**Handover:** ✅")
 
-left, center, right = st.columns([1, 2, 1])
+left, center, _ = st.columns([1, 2, 1])
 
 with center:
     team_num = st.session_state.team_num
@@ -277,16 +295,20 @@ with center:
                 else:
                     st.info("You have completed all your subtasks.")
 
-# Right-side collapsible ChatGPT assistant
-with right:
-    with st.expander("💬 ChatGPT Assistant", expanded=False):
-        step_keys = ["q_step0", "q_step1", "q_step2", "q_step3"]
-        current_step = st.session_state.get("step", 0)
-        if current_step in range(len(step_keys)):
-            key = step_keys[current_step]
-            user_question = st.text_input("Ask ChatGPT a question:", key=key)
-            if user_question and user_question.lower() != 'n':
-                answer = call_chatgpt(user_question, context)
-                show_gpt_response(answer)
-        else:
-            st.write("No active step for ChatGPT questions.")
+# Floating ChatGPT Assistant
+st.markdown("<div class='floating-assistant'>", unsafe_allow_html=True)
+
+st.markdown("### 💬 ChatGPT Assistant")
+step_keys = ["q_step0", "q_step1", "q_step2", "q_step3"]
+current_step = st.session_state.get("step", 0)
+
+if current_step in range(len(step_keys)):
+    key = step_keys[current_step]
+    user_question = st.text_input("Ask ChatGPT a question:", key=key)
+    if user_question and user_question.lower() != 'n':
+        answer = call_chatgpt(user_question, context)
+        show_gpt_response(answer)
+else:
+    st.write("No active step for ChatGPT questions.")
+
+st.markdown("</div>", unsafe_allow_html=True)
