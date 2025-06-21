@@ -5,7 +5,6 @@ import ast
 from PIL import Image
 from openai import OpenAI
 import base64
-# version 1 
 
 # Initialize OpenAI client
 api_key = os.getenv("OPENAI_API_KEY")
@@ -31,13 +30,6 @@ def show_image(image_path, caption=""):
         st.image(img, caption=caption, use_column_width=True)
     else:
         st.warning(f"Image not found: {image_path}")
-
-def show_gpt_response(answer):
-    st.markdown(f"""
-    <div style='text-align: left; padding: 10px; background-color: #e8f0fe; border-left: 5px solid #4285f4; border-radius: 8px; margin-bottom: 1em;'>
-        🧠 <strong>ChatGPT says:</strong><br>{answer}
-    </div>
-    """, unsafe_allow_html=True)
 
 def call_chatgpt(user_question, context):
     image_path = context.get('current_image')
@@ -143,6 +135,17 @@ with center:
                 "previous_step": None,
                 "current_image": None,
             }
+
+            show_chat = st.toggle("💬 Show ChatGPT Help")
+            if show_chat:
+                user_question = st.text_input("Ask ChatGPT a question about your current step:")
+                if user_question and user_question.lower() != 'n':
+                    answer = call_chatgpt(user_question, context)
+                    st.markdown(f"""
+                    <div style='text-align: left; padding: 10px; background-color: #e8f0fe; border-left: 5px solid #4285f4; border-radius: 8px; margin-bottom: 1em;'>
+                        🧠 <strong>ChatGPT says:</strong><br>{answer}
+                    </div>
+                    """, unsafe_allow_html=True)
 
             if st.session_state.step == 0:
                 st.subheader("Step 1: Collect required parts")
