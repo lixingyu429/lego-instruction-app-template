@@ -189,9 +189,9 @@ with center:
                     receiver_group = group_num
                     receive_img_path = f"handling-image/receive-t{giver_group}-t{receiver_group}.png"
                     
-                    st.subheader("Step 3: Receive product")
-                    print('code enter print')
-                    show_image(receive_img_path, f"Receive from Group {giver_group}")
+                    st.subheader(f"Receive from Group {giver_group}")
+                    
+                    show_image(receive_img_path)
                     
                     if st.button("I have received the product from the previous group"):
                         st.session_state.previous_step_confirmed = True
