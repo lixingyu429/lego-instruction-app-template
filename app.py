@@ -74,6 +74,8 @@ def call_chatgpt(user_question, context):
                 }
             })
 
+    team_number = context.get('team_number', 'Unknown')
+
     system_prompt = (
         "You are a helpful assistant helping a student with a physical LEGO assembly task. "
         "The student belongs to a team and is working on a specific subtask. "
@@ -82,7 +84,7 @@ def call_chatgpt(user_question, context):
 
     user_prompt = f"""
 Current subtask: {context['subtask_name']}
-Team Number: {context['team_number']}
+Team Number: {team_number}
 Bag: {context['bag']}
 Subassembly Pages: {context['subassembly']}
 Final Assembly Pages: {context['final_assembly']}
@@ -109,7 +111,6 @@ Here is the full task sequence across all teams:
         temperature=0.4,
     )
     return response.choices[0].message.content.strip()
-
 
 # === User Info Input Page ===
 if ("group_name" not in st.session_state or
