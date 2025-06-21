@@ -6,6 +6,7 @@ from PIL import Image
 from openai import OpenAI
 import base64
 
+# verison 5
 # Page config
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 
