@@ -179,16 +179,24 @@ with center:
                     st.session_state.step = 2
                     st.rerun()
 
+            # ---- REVISED Step 2: Receive product from previous group ----
             elif st.session_state.step == 2:
                 idx = df.index.get_loc(current_task.name)
                 if idx > 0:
                     prev_row = df.iloc[idx - 1]
                     context['previous_step'] = prev_row['Subtask Name']
-                    st.subheader(f"Step 3: Receive product from Group {prev_row['Student Group']} ({prev_row['Subtask Name']})")
+                    giver_group = prev_row['Student Group']
+                    receiver_group = group_num
+                    receive_img_path = f"handling-image/receive-t{giver_group}-t{receiver_group}.png"
+                    
+                    st.subheader("Step 3: Receive product")
+                    show_image(receive_img_path, f"Receive from Group {giver_group}")
+                    
                     if st.button("I have received the product from the previous group"):
                         st.session_state.previous_step_confirmed = True
                         st.session_state.step = 3
                         st.rerun()
+                    
                     user_question = st.text_input("Ask a question about receiving or type 'n' if not ready:")
                     if user_question and user_question.lower() != 'n':
                         answer = call_chatgpt(user_question, context)
@@ -228,14 +236,23 @@ with center:
                     answer = call_chatgpt(user_question, context)
                     show_gpt_response(answer)
 
+           
+            # ---- REVISED Step 4: Final step with handover ----
             elif st.session_state.step == 4:
                 idx = df.index.get_loc(current_task.name)
                 if idx + 1 < len(df):
                     next_row = df.iloc[idx + 1]
-                    st.subheader(f"Final Step: Please hand over the product to Group {next_row['Student Group']} ({next_row['Subtask Name']})")
+                    receiver_group = next_row['Student Group']
+                    giver_group = group_num
+                    give_img_path = f"handling-image/give-t{giver_group}-t{receiver_group}.png"
+                    
+                    st.subheader("Final Step: Handover")
+                    show_image(give_img_path, f"Give to Group {receiver_group}")
                 else:
                     st.subheader("🎉 You are the final group — no further handover needed.")
+                
                 st.success("✅ Subtask complete. Great work!")
+                
                 if st.button("Next Subtask"):
                     if st.session_state.task_idx + 1 < len(group_tasks):
                         st.session_state.task_idx += 1
