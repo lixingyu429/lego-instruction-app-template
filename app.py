@@ -105,9 +105,10 @@ if ("group_number" not in st.session_state or
     "team_name" not in st.session_state):
     
     st.header("Welcome to the Assembly Task")
+    team_name_input = st.text_input("Enter your Group Number:", key="team_name_input")
     group_number_input = st.number_input("Enter your Team Number:", min_value=1, step=1, key="group_number_input")
     student_name_input = st.text_input("Enter your Name:", key="student_name_input")
-    team_name_input = st.text_input("Enter your Group Name:", key="team_name_input")
+    
 
     if st.button("Submit"):
         if group_number_input and student_name_input.strip() and team_name_input.strip():
@@ -124,8 +125,8 @@ if ("group_number" not in st.session_state or
 with st.sidebar:
     st.header("Progress Tracker")
     st.markdown(f"**Student:** {st.session_state.student_name}")
-    st.markdown(f"**Team:** {st.session_state.team_name}")
-    st.markdown(f"**Group Number:** {st.session_state.group_number}")
+    st.markdown(f"**Group Number:** {st.session_state.team_name}")
+    st.markdown(f"**Team Number:** {st.session_state.group_number}")
 
     team_tasks_preview = df[df['Student Team'] == st.session_state.group_number]
     if 'task_idx' in st.session_state and not team_tasks_preview.empty:
