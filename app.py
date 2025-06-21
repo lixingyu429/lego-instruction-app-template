@@ -7,7 +7,7 @@ from openai import OpenAI
 import base64
 import hashlib
 
-# version 7
+# version 7 with added group number, student name, and team name inputs on first page
 
 # Page config
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
@@ -99,27 +99,35 @@ Additional info:
     )
     return response.choices[0].message.content.strip()
 
-# Initial input page
-if "team_num" not in st.session_state or "student_name" not in st.session_state:
+# === New: Initial input page for Group Number, Student Name, Team Name ===
+if ("group_number" not in st.session_state or
+    "student_name" not in st.session_state or
+    "team_name" not in st.session_state):
+    
     st.header("Welcome to the Assembly Task")
-    team_num_input = st.number_input("Enter your student team number:", min_value=1, step=1)
-    student_name_input = st.text_input("Enter your name:")
-    if student_name_input and team_num_input:
-        st.session_state.team_num = team_num_input
-        st.session_state.student_name = student_name_input
-        st.success("Information saved. You can proceed.")
-        st.rerun()
-    else:
-        st.warning("Please enter both your name and team number to continue.")
+    group_number_input = st.number_input("Enter your Group Number:", min_value=1, step=1, key="group_number_input")
+    student_name_input = st.text_input("Enter your Name:", key="student_name_input")
+    team_name_input = st.text_input("Enter your Team Name:", key="team_name_input")
+
+    if st.button("Submit"):
+        if group_number_input and student_name_input.strip() and team_name_input.strip():
+            st.session_state.group_number = group_number_input
+            st.session_state.student_name = student_name_input.strip()
+            st.session_state.team_name = team_name_input.strip()
+            st.success("Information saved. You can proceed.")
+            st.experimental_rerun()
+        else:
+            st.warning("Please fill in all fields before submitting.")
     st.stop()
 
 # Sidebar: Progress Tracker + Assistant
 with st.sidebar:
     st.header("Progress Tracker")
     st.markdown(f"**Student:** {st.session_state.student_name}")
-    st.markdown(f"**Team:** {st.session_state.team_num}")
+    st.markdown(f"**Team:** {st.session_state.team_name}")
+    st.markdown(f"**Group Number:** {st.session_state.group_number}")
 
-    team_tasks_preview = df[df['Student Team'] == st.session_state.team_num]
+    team_tasks_preview = df[df['Student Team'] == st.session_state.group_number]
     if 'task_idx' in st.session_state and not team_tasks_preview.empty:
         current_task_preview = team_tasks_preview.iloc[st.session_state.task_idx]
         st.markdown(f"""
@@ -150,7 +158,7 @@ with st.sidebar:
             user_question = st.text_input("Your question to AGEMT:", key=key)
             if user_question and user_question.lower() != 'n':
                 task_idx = st.session_state.get('task_idx', 0)
-                current_task = df[df['Student Team'] == st.session_state.team_num].iloc[task_idx]
+                current_task = df[df['Student Team'] == st.session_state.group_number].iloc[task_idx]
                 context = {
                     "subtask_name": current_task["Subtask Name"],
                     "subassembly": current_task["Subassembly"],
@@ -169,9 +177,9 @@ with st.sidebar:
 # Main layout
 left, center, _ = st.columns([1, 2, 1])
 with center:
-    team_tasks = df[df['Student Team'] == st.session_state.team_num]
+    team_tasks = df[df['Student Team'] == st.session_state.group_number]
     if team_tasks.empty:
-        st.error(f"No subtasks found for Team {st.session_state.team_num}.")
+        st.error(f"No subtasks found for Team {st.session_state.group_number}.")
         st.stop()
 
     if 'task_idx' not in st.session_state:
@@ -208,7 +216,7 @@ with center:
             if st.button("I have collected all parts"):
                 st.session_state.collected_parts_confirmed = True
                 st.session_state.step = 1
-                st.rerun()
+                st.experimental_rerun()
 
     elif step == 1:
         if context['subassembly']:
@@ -218,14 +226,14 @@ with center:
                 if page not in st.session_state.subassembly_confirmed_pages:
                     if st.button(f"✅ Confirm completed Subassembly - Page {page}"):
                         st.session_state.subassembly_confirmed_pages.add(page)
-                        st.rerun()
+                        st.experimental_rerun()
             if len(st.session_state.subassembly_confirmed_pages) == len(context['subassembly']):
                 st.success("All subassembly pages completed!")
                 st.session_state.step = 2
-                st.rerun()
+                st.experimental_rerun()
         else:
             st.session_state.step = 2
-            st.rerun()
+            st.experimental_rerun()
 
     elif step == 2:
         idx = df.index.get_loc(current_task.name)
@@ -233,18 +241,18 @@ with center:
             prev_row = df.iloc[idx - 1]
             context['previous_step'] = prev_row['Subtask Name']
             giver_team = prev_row['Student Team']
-            receiver_team = st.session_state.team_num
+            receiver_team = st.session_state.group_number
             st.subheader(f"Step 3: Receive from Team {giver_team}")
             show_image(f"handling-image/receive-t{giver_team}-t{receiver_team}.png")
             if not st.session_state.previous_step_confirmed:
                 if st.button("I have received the product from the previous team"):
                     st.session_state.previous_step_confirmed = True
                     st.session_state.step = 3
-                    st.rerun()
+                    st.experimental_rerun()
         else:
             st.session_state.previous_step_confirmed = True
             st.session_state.step = 3
-            st.rerun()
+            st.experimental_rerun()
 
     elif step == 3:
         st.subheader("Step 4: Perform the final assembly")
@@ -260,23 +268,23 @@ with center:
                     # Overlapping page confirmation button text
                     if st.button(f"✅ The subassembled part for Page {page} is ready"):
                         st.session_state.finalassembly_confirmed_pages.add(page)
-                        st.rerun()
+                        st.experimental_rerun()
                 else:
                     if st.button(f"✅ Confirm completed Final Assembly - Page {page}"):
                         st.session_state.finalassembly_confirmed_pages.add(page)
-                        st.rerun()
+                        st.experimental_rerun()
 
         if len(st.session_state.finalassembly_confirmed_pages) == len(final_assembly_pages):
             st.success("All final assembly pages completed!")
             st.session_state.step = 4
-            st.rerun()
+            st.experimental_rerun()
 
     elif step == 4:
         idx = df.index.get_loc(current_task.name)
         if idx + 1 < len(df):
             next_row = df.iloc[idx + 1]
             st.subheader(f"Step 5: Handover to Team {next_row['Student Team']}")
-            show_image(f"handling-image/give-t{st.session_state.team_num}-t{next_row['Student Team']}.png")
+            show_image(f"handling-image/give-t{st.session_state.group_number}-t{next_row['Student Team']}.png")
         else:
             st.subheader("🎉 You are the final team — no further handover needed.")
         st.success("✅ Subtask complete. Great work!")
@@ -288,6 +296,6 @@ with center:
                 st.session_state.finalassembly_confirmed_pages = set()
                 st.session_state.previous_step_confirmed = False
                 st.session_state.collected_parts_confirmed = False
-                st.rerun()
+                st.experimental_rerun()
             else:
                 st.info("You have completed all your subtasks.")
