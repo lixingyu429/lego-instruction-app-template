@@ -286,3 +286,42 @@ with center:
                 giver_team = team_num
                 give_img_path = f"handling-image/give-t{giver_team}-t{receiver_team}.png"
 
+                st.subheader(f"Final Step: Handover the semi-finished product to Team {receiver_team}")
+                show_image(give_img_path)
+            else:
+                st.subheader("🎉 You are the final team — no further handover needed.")
+
+            st.success("✅ Subtask complete. Great work!")
+            if st.button("Next Subtask"):
+                if st.session_state.task_idx + 1 < len(team_tasks):
+                    st.session_state.task_idx += 1
+                    st.session_state.step = 0
+                    st.session_state.subassembly_confirmed = False
+                    st.session_state.finalassembly_confirmed_pages = set()
+                    st.session_state.previous_step_confirmed = False
+                    st.session_state.collected_parts_confirmed = False
+                    st.experimental_rerun()
+                else:
+                    st.info("You have completed all your subtasks.")
+
+# Sticky ChatGPT assistant container on the right top corner
+with st.empty():
+    st.markdown(
+        """
+        <div id="chatgpt-sticky">
+            <h4>💬 ChatGPT Assistant</h4>
+        """, unsafe_allow_html=True)
+    
+    # Chat input and response inside sticky container
+    step_keys = ["q_step0", "q_step1", "q_step2", "q_step3"]
+    current_step = st.session_state.get("step", 0)
+    if current_step in range(len(step_keys)):
+        key = step_keys[current_step]
+        user_question = st.text_input("Ask ChatGPT a question:", key=key)
+        if user_question and user_question.lower() != 'n':
+            answer = call_chatgpt(user_question, context)
+            show_gpt_response(answer)
+    else:
+        st.write("No active step for ChatGPT questions.")
+    
+    st.markdown("</div>", unsafe_allow_html=True)
