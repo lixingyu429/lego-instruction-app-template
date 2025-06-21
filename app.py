@@ -7,7 +7,6 @@ from openai import OpenAI
 import base64
 import hashlib
 
-# version 6
 # Page config
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 
@@ -129,8 +128,8 @@ with st.sidebar:
         if current_task_preview['Subassembly']:
             st.markdown("**Subassembly:**")
             for page in current_task_preview['Subassembly']:
-                completed = st.session_state.get('subassembly_confirmed', False)
-                st.markdown(f"- Page {page}: {'✅' if completed else '❌'}")
+                done = page in st.session_state.get('subassembly_confirmed_pages', set())
+                st.markdown(f"- Page {page}: {'✅' if done else '❌'}")
         if current_task_preview['Final Assembly']:
             st.markdown("**Final Assembly:**")
             for page in current_task_preview['Final Assembly']:
@@ -176,7 +175,7 @@ with center:
     if 'task_idx' not in st.session_state:
         st.session_state.task_idx = 0
         st.session_state.step = 0
-        st.session_state.subassembly_confirmed = False
+        st.session_state.subassembly_confirmed_pages = set()
         st.session_state.finalassembly_confirmed_pages = set()
         st.session_state.previous_step_confirmed = False
         st.session_state.collected_parts_confirmed = False
@@ -191,6 +190,11 @@ with center:
         "bag": current_task["Bag"],
         "previous_step": None,
     }
+
+    # Visual progress bar
+    total_steps = 5
+    current_progress = min(step / (total_steps - 1), 1.0)
+    st.progress(current_progress, text=f"Step {step+1} of {total_steps}")
 
     if step == 0:
         st.subheader("Step 1: Collect required parts")
@@ -207,13 +211,15 @@ with center:
             st.subheader("Step 2: Perform subassembly")
             for page in context['subassembly']:
                 show_image(f"manuals/page_{page}.png", f"Subassembly - Page {page}")
-            if not st.session_state.subassembly_confirmed:
-                if st.button("I have completed the subassembly"):
-                    st.session_state.subassembly_confirmed = True
-                    st.session_state.step = 2
-                    st.rerun()
+                if page not in st.session_state.subassembly_confirmed_pages:
+                    if st.button(f"✅ Confirm completed Subassembly - Page {page}"):
+                        st.session_state.subassembly_confirmed_pages.add(page)
+                        st.rerun()
+            if len(st.session_state.subassembly_confirmed_pages) == len(context['subassembly']):
+                st.success("All subassembly pages completed!")
+                st.session_state.step = 2
+                st.rerun()
         else:
-            st.session_state.subassembly_confirmed = True
             st.session_state.step = 2
             st.rerun()
 
@@ -261,7 +267,7 @@ with center:
             if st.session_state.task_idx + 1 < len(team_tasks):
                 st.session_state.task_idx += 1
                 st.session_state.step = 0
-                st.session_state.subassembly_confirmed = False
+                st.session_state.subassembly_confirmed_pages = set()
                 st.session_state.finalassembly_confirmed_pages = set()
                 st.session_state.previous_step_confirmed = False
                 st.session_state.collected_parts_confirmed = False
