@@ -215,7 +215,7 @@ with center:
             for page in context['subassembly']:
                 show_image(f"manuals/page_{page}.png", f"Subassembly - Page {page}")
                 if page not in st.session_state.subassembly_confirmed_pages:
-                    if st.button(f"✅ Confirm completed Subassembly - Page {page}"):
+                    if st.button(f"Confirm completed Subassembly - Page {page}"):
                         st.session_state.subassembly_confirmed_pages.add(page)
                         st.rerun()
             if len(st.session_state.subassembly_confirmed_pages) == len(context['subassembly']):
