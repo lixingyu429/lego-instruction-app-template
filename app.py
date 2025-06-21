@@ -1,4 +1,3 @@
-# ... keep all your imports the same ...
 import streamlit as st
 import pandas as pd
 import os
@@ -103,9 +102,9 @@ Additional info:
 if ("group_name" not in st.session_state or
     "student_name" not in st.session_state or
     "team_number" not in st.session_state):
-    
+
     st.header("Welcome to the Assembly Task")
-    
+
     group_name_input = st.selectbox("Which group are you in?", ["Red", "Yellow", "Blue", "Green"])
     team_number_input = st.selectbox("Which team number are you in?", [1, 2, 3, 4, 5])
     student_name_input = st.text_input("Enter your name:")
@@ -125,8 +124,8 @@ if ("group_name" not in st.session_state or
 with st.sidebar:
     st.header("Progress Tracker")
     st.markdown(f"**Student:** {st.session_state.student_name}")
-    st.markdown(f"**Group Number:** {st.session_state.team_name}")
-    st.markdown(f"**Team Number:** {st.session_state.group_number}")
+    st.markdown(f"**Group Name:** {st.session_state.group_name}")
+    st.markdown(f"**Team Number:** {st.session_state.team_number}")
 
     team_tasks_preview = df[df['Student Team'] == st.session_state.group_number]
     if 'task_idx' in st.session_state and not team_tasks_preview.empty:
